@@ -44,6 +44,41 @@ const api = {
     browseManual: () => ipcRenderer.invoke('ide:browseManual'),
     launch: (idePath: string, targetPath: string) => ipcRenderer.invoke('ide:launch', idePath, targetPath),
     openFolder: (folderPath: string) => ipcRenderer.invoke('ide:openFolder', folderPath)
+  },
+  update: {
+    checkNow: () => ipcRenderer.invoke('update:checkNow'),
+    download: () => ipcRenderer.invoke('update:download'),
+    install: () => ipcRenderer.invoke('update:install'),
+    onChecking: (cb: () => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('update:checking', listener)
+      return () => ipcRenderer.removeListener('update:checking', listener)
+    },
+    onAvailable: (cb: (info: unknown) => void) => {
+      const listener = (_e: unknown, info: unknown): void => cb(info)
+      ipcRenderer.on('update:available', listener)
+      return () => ipcRenderer.removeListener('update:available', listener)
+    },
+    onNotAvailable: (cb: (info: unknown) => void) => {
+      const listener = (_e: unknown, info: unknown): void => cb(info)
+      ipcRenderer.on('update:notAvailable', listener)
+      return () => ipcRenderer.removeListener('update:notAvailable', listener)
+    },
+    onProgress: (cb: (progress: unknown) => void) => {
+      const listener = (_e: unknown, progress: unknown): void => cb(progress)
+      ipcRenderer.on('update:progress', listener)
+      return () => ipcRenderer.removeListener('update:progress', listener)
+    },
+    onDownloaded: (cb: (info: unknown) => void) => {
+      const listener = (_e: unknown, info: unknown): void => cb(info)
+      ipcRenderer.on('update:downloaded', listener)
+      return () => ipcRenderer.removeListener('update:downloaded', listener)
+    },
+    onError: (cb: (payload: unknown) => void) => {
+      const listener = (_e: unknown, payload: unknown): void => cb(payload)
+      ipcRenderer.on('update:error', listener)
+      return () => ipcRenderer.removeListener('update:error', listener)
+    }
   }
 }
 

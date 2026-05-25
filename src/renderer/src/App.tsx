@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { HubView } from './views/HubView'
 import { WorkspaceView } from './views/WorkspaceView'
+import { UpdateModal } from './components/UpdateModal'
 import { useProjectStore } from './store/projectStore'
 import { useBuildStore } from './store/buildStore'
+import { useUpdateStore } from './store/updateStore'
 
 /**
  * 路由:
@@ -15,12 +17,14 @@ export function App() {
   const bound = useProjectStore((s) => s.bound)
   const hydrate = useProjectStore((s) => s.hydrateFromMain)
   const initBuildSubs = useBuildStore((s) => s.initSubscriptions)
+  const initUpdateSubs = useUpdateStore((s) => s.initSubscriptions)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     initBuildSubs()
+    initUpdateSubs()
     hydrate().then(() => setReady(true))
-  }, [hydrate, initBuildSubs])
+  }, [hydrate, initBuildSubs, initUpdateSubs])
 
   if (!ready) {
     return (
@@ -30,5 +34,10 @@ export function App() {
     )
   }
 
-  return bound ? <WorkspaceView /> : <HubView />
+  return (
+    <>
+      {bound ? <WorkspaceView /> : <HubView />}
+      <UpdateModal />
+    </>
+  )
 }

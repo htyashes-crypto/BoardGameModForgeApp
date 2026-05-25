@@ -11,10 +11,12 @@ import { BehaviourCreationService } from './services/BehaviourCreationService'
 import { ModBuildService } from './services/ModBuildService'
 import { IdeDetectionService } from './services/IdeDetectionService'
 import { IdeLaunchService } from './services/IdeLaunchService'
+import { AutoUpdaterService } from './services/AutoUpdaterService'
 import { registerProjectIpc } from './ipc/projectIpc'
 import { registerModIpc } from './ipc/modIpc'
 import { registerBuildIpc } from './ipc/buildIpc'
 import { registerIdeIpc } from './ipc/ideIpc'
+import { registerUpdateIpc } from './ipc/updateIpc'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -28,6 +30,7 @@ const behaviourCreationService = new BehaviourCreationService(modScanService)
 const modBuildService = new ModBuildService(modScanService)
 const ideDetectionService = new IdeDetectionService()
 const ideLaunchService = new IdeLaunchService()
+const autoUpdaterService = new AutoUpdaterService()
 
 /**
  * 解析 BrowserWindow icon 路径(dev 模式生效;packed 模式由 electron-builder 嵌入 .exe 自动生效)。
@@ -78,7 +81,16 @@ app.whenReady().then(() => {
   registerModIpc(modScanService, modCreationService, behaviourCreationService)
   registerBuildIpc(modBuildService)
   registerIdeIpc(ideDetectionService, ideLaunchService, projectBindingService)
+  registerUpdateIpc(autoUpdaterService)
   createWindow()
+
+  if (mainWindow) {
+    autoUpdaterService.init(mainWindow)
+    // 打包后启动检查;dev 模式 electron-updater 不工作
+    if (app.isPackaged) {
+      autoUpdaterService.checkOnStartup()
+    }
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

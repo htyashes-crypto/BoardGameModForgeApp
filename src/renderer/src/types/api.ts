@@ -42,6 +42,17 @@ export interface ModForgeWindowApi {
     launch(idePath: string, targetPath: string): Promise<void>
     openFolder(folderPath: string): Promise<void>
   }
+  update: {
+    checkNow(): Promise<void>
+    download(): Promise<void>
+    install(): Promise<void>
+    onChecking(cb: () => void): () => void
+    onAvailable(cb: (info: unknown) => void): () => void
+    onNotAvailable(cb: (info: unknown) => void): () => void
+    onProgress(cb: (progress: unknown) => void): () => void
+    onDownloaded(cb: (info: unknown) => void): () => void
+    onError(cb: (payload: unknown) => void): () => void
+  }
 }
 
 export interface DetectedIde {

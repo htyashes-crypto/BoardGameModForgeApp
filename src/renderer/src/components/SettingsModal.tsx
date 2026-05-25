@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useIdeStore } from '../store/ideStore'
+import { useUpdateStore } from '../store/updateStore'
 
 interface SettingsModalProps {
   onClose(): void
@@ -155,6 +156,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
           </section>
 
+          {/* 自动更新 */}
+          <section>
+            <div className="flex items-center mb-3">
+              <span className="block w-1 h-3.5 bg-brand-base" />
+              <span className="ml-3 text-xs font-bold tracking-widest">自动更新</span>
+            </div>
+            <div className="card p-4 text-2xs text-fg-mute space-y-3">
+              <div>
+                ModForge 从 GitHub Releases 自动拉取更新。dev 模式下检查不工作(只在打包安装版生效)。
+              </div>
+              <CheckUpdateButton />
+            </div>
+          </section>
+
           {/* About */}
           <section>
             <div className="flex items-center mb-3">
@@ -167,7 +182,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </div>
               <div>BoardGameEditor 桌游工程的 Mod 开发 IDE 环境创建器</div>
               <div className="font-mono text-3xs text-fg-muteBright mt-2">
-                Electron + React + Tailwind · 阶段 2 完工 2026-05-25
+                Electron + React + Tailwind · 阶段 2-3 完工 2026-05-25
+              </div>
+              <div className="font-mono text-3xs text-fg-muteBright">
+                <a
+                  href="https://github.com/htyashes-crypto/BoardGameModForgeApp"
+                  className="text-fg-accentInfo hover:underline"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    // 外部链接走 shell.openExternal(主进程已暴露);此处先用默认行为
+                    window.open('https://github.com/htyashes-crypto/BoardGameModForgeApp', '_blank')
+                  }}
+                >
+                  htyashes-crypto/BoardGameModForgeApp
+                </a>
               </div>
             </div>
           </section>
@@ -181,5 +209,19 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         </footer>
       </div>
     </div>
+  )
+}
+
+function CheckUpdateButton() {
+  const state = useUpdateStore((s) => s.state)
+  const checkNow = useUpdateStore((s) => s.checkNow)
+  return (
+    <button
+      onClick={() => checkNow(true)}
+      disabled={state === 'checking' || state === 'downloading'}
+      className="btn-ghost h-8 px-3 rounded text-2xs disabled:opacity-50"
+    >
+      {state === 'checking' ? '🔄 检查中…' : state === 'downloading' ? '⬇ 下载中…' : '🔄 检查更新'}
+    </button>
   )
 }
