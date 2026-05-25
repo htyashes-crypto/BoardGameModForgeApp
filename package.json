@@ -1,0 +1,43 @@
+{
+  "name": "modforge",
+  "version": "0.1.0",
+  "description": "ModForge — BoardGameEditor 桌游工程的 Mod 开发 IDE 环境创建器(Electron + React)",
+  "main": "out/main/index.js",
+  "author": "ActFramework",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/launch.cjs electron-vite dev",
+    "build": "electron-vite build",
+    "build:win": "electron-vite build && electron-builder --win",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "preview": "node scripts/launch.cjs electron-vite preview",
+    "release": "electron-vite build && electron-builder --publish always",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "icons:generate": "electron-icon-builder --input=resources/icon.svg --output=resources --flatten"
+  },
+  "dependencies": {
+    "electron-store": "^7.0.3",
+    "electron-updater": "^6.2.1",
+    "semver": "^7.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "@types/semver": "^7.5.8",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-icon-builder": "^2.0.1",
+    "electron-vite": "^2.1.0",
+    "postcss": "^8.4.38",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8",
+    "zustand": "^4.5.2"
+  }
+}
