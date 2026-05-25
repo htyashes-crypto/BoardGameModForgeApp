@@ -12,12 +12,14 @@ interface ModDetailPaneProps {
   onBuild(): void
   onOpenFolder(): void
   onNewBehaviour(): void
+  /** 删除当前 Mod(后端弹 native confirm + 反向依赖警告)。 */
+  onDeleteMod(): void
 }
 
 /**
  * Mod 详情主面板(右侧)。整合标题/操作按钮/依赖 strip/Behaviour 列表/元信息卡。
  */
-export function ModDetailPane({ mod, snapshot, usedBy, activeIdeName, onOpenInIde, onBuild, onOpenFolder, onNewBehaviour }: ModDetailPaneProps) {
+export function ModDetailPane({ mod, snapshot, usedBy, activeIdeName, onOpenInIde, onBuild, onOpenFolder, onNewBehaviour, onDeleteMod }: ModDetailPaneProps) {
   const manifest = mod.manifest
   if (!manifest) {
     return (
@@ -70,11 +72,15 @@ export function ModDetailPane({ mod, snapshot, usedBy, activeIdeName, onOpenInId
           <button onClick={onBuild} className="btn-ghost h-10 px-4 rounded-lg text-sm">
             🔨 编译并部署
           </button>
-          <button onClick={onOpenFolder} className="btn-ghost h-10 w-10 rounded-lg text-base grid place-items-center">
+          <button onClick={onOpenFolder} title="在资源管理器打开 Mod 目录" className="btn-ghost h-10 w-10 rounded-lg text-base grid place-items-center">
             📂
           </button>
-          <button className="btn-ghost h-10 w-10 rounded-lg text-base grid place-items-center" title="更多">
-            ⋯
+          <button
+            onClick={onDeleteMod}
+            title="删除 Mod(永久,带反向依赖警告)"
+            className="btn-ghost h-10 w-10 rounded-lg text-base grid place-items-center hover:bg-status-danger/15 hover:border-status-danger/40 hover:text-status-danger"
+          >
+            🗑
           </button>
         </div>
       </header>

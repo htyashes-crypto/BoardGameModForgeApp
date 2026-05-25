@@ -197,6 +197,21 @@ export function WorkspaceView() {
                 if (selectedMod) window.api.ide.openFolder(selectedMod.modDirPath)
               }}
               onNewBehaviour={() => setIsNewBehaviourOpen(true)}
+              onDeleteMod={async () => {
+                if (!bound || !selectedMod?.manifest) return
+                const result = await window.api.mod.delete({
+                  projectPath: bound.path,
+                  modId: selectedMod.manifest.id,
+                  modDirName: selectedMod.modDir
+                })
+                if (result.success) {
+                  // 删除成功:取消选中 + 重扫
+                  selectMod(null)
+                  await scan(bound.path)
+                } else if (!result.cancelled && result.errors.length > 0) {
+                  console.error('[Mod] 删除失败:', result.errors)
+                }
+              }}
             />
           ) : (
             <div className="h-full grid place-items-center text-fg-mute text-2xs">

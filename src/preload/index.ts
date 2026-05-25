@@ -17,7 +17,8 @@ const api = {
   },
   mod: {
     scanProject: (projectPath: string) => ipcRenderer.invoke('mod:scanProject', projectPath),
-    create: (input: unknown) => ipcRenderer.invoke('mod:create', input)
+    create: (input: unknown) => ipcRenderer.invoke('mod:create', input),
+    delete: (input: unknown) => ipcRenderer.invoke('mod:delete', input)
   },
   behaviour: {
     create: (input: unknown) => ipcRenderer.invoke('behaviour:create', input)

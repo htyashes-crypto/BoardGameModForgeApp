@@ -21,6 +21,7 @@ export interface ModForgeWindowApi {
   mod: {
     scanProject(projectPath: string): Promise<ModListSnapshot>
     create(input: CreateModInput): Promise<CreateModResult>
+    delete(input: DeleteModInput): Promise<DeleteModResult>
   }
   behaviour: {
     create(input: CreateBehaviourInput): Promise<CreateBehaviourResult>
@@ -74,6 +75,18 @@ export interface CreateModInput {
 export interface CreateModResult {
   success: boolean
   modDirPath: string
+  errors: string[]
+}
+
+export interface DeleteModInput {
+  projectPath: string
+  modId: string
+  modDirName: string
+}
+
+export interface DeleteModResult {
+  success: boolean
+  cancelled: boolean
   errors: string[]
 }
 

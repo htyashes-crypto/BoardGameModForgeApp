@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import type { ModScanService } from '../services/ModScanService'
 import type { ModCreationService, CreateModInput } from '../services/ModCreationService'
 import type { BehaviourCreationService, CreateBehaviourInput } from '../services/BehaviourCreationService'
+import type { ModDeletionService, DeleteModInput } from '../services/ModDeletionService'
 
 /**
  * Mod 相关 IPC handler 注册。命名空间 `mod:*` / `behaviour:*`。
@@ -9,7 +10,8 @@ import type { BehaviourCreationService, CreateBehaviourInput } from '../services
 export function registerModIpc(
   scan: ModScanService,
   creation: ModCreationService,
-  behaviourCreation: BehaviourCreationService
+  behaviourCreation: BehaviourCreationService,
+  deletion: ModDeletionService
 ): void {
   ipcMain.handle('mod:scanProject', async (_, projectPath: string) => {
     return scan.scanProject(projectPath)
@@ -17,6 +19,10 @@ export function registerModIpc(
 
   ipcMain.handle('mod:create', async (_, input: CreateModInput) => {
     return creation.create(input)
+  })
+
+  ipcMain.handle('mod:delete', async (_, input: DeleteModInput) => {
+    return deletion.delete(input)
   })
 
   ipcMain.handle('behaviour:create', async (_, input: CreateBehaviourInput) => {
