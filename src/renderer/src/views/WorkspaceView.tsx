@@ -10,6 +10,7 @@ import { NewModModal } from '../components/NewModModal'
 import { NewBehaviourModal } from '../components/NewBehaviourModal'
 import { BuildingPane } from '../components/BuildingPane'
 import { ModDepsGraphModal } from '../components/ModDepsGraphModal'
+import { SettingsModal } from '../components/SettingsModal'
 
 /**
  * Workspace 主面板:绑定工程后的核心视图。
@@ -34,6 +35,7 @@ export function WorkspaceView() {
   const [isNewModOpen, setIsNewModOpen] = useState(false)
   const [isNewBehaviourOpen, setIsNewBehaviourOpen] = useState(false)
   const [isDepsGraphOpen, setIsDepsGraphOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const buildTask = useBuildStore((s) => s.task)
   const startBuild = useBuildStore((s) => s.startBuild)
@@ -104,10 +106,10 @@ export function WorkspaceView() {
         >
           🔗 查看依赖图
         </button>
-        <button onClick={unbind} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs">
-          🔄 切换工程
+        <button onClick={unbind} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs" title="返回 Hub 选其他桌游工程">
+          ← 返回
         </button>
-        <button className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs" title="设置">
+        <button onClick={() => setIsSettingsOpen(true)} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs" title="IDE 偏好等设置">
           ⚙ 设置
         </button>
       </div>
@@ -183,8 +185,8 @@ export function WorkspaceView() {
               activeIdeName={activeIde?.name ?? null}
               onOpenInIde={() => {
                 if (!selectedMod) return
-                const slnPath = joinPath(selectedMod.modDirPath, 'src')
-                ideLaunchTarget(slnPath)
+                // 打开 Mod 根目录(含 .sln),IDE 窗口标题 = Mod 名
+                ideLaunchTarget(selectedMod.modDirPath)
               }}
               onBuild={() => {
                 if (bound && selectedMod?.manifest) {
@@ -203,6 +205,8 @@ export function WorkspaceView() {
           )}
         </main>
       </div>
+
+      {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} />}
 
       {isDepsGraphOpen && snapshot && (
         <ModDepsGraphModal
@@ -243,10 +247,8 @@ export function WorkspaceView() {
             // 重扫 + 选中新 Mod
             await scan(bound.path)
             selectMod(modId)
-            if (openInIde) {
-              const srcDir = joinPath(modDirPath, 'src')
-              ideLaunchTarget(srcDir)
-            }
+            // 打开 Mod 根(含 .sln),窗口标题 = Mod 名
+            if (openInIde) ideLaunchTarget(modDirPath)
           }}
         />
       )}

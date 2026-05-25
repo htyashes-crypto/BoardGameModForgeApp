@@ -121,7 +121,8 @@ export class ModCreationService {
     try {
       await fs.writeFile(join(modDirPath, 'mod.json'), modJsonText, 'utf-8')
       await fs.writeFile(join(srcDir, `${input.modName}.csproj`), csprojText, 'utf-8')
-      await fs.writeFile(join(srcDir, `${input.modName}.sln`), slnText, 'utf-8')
+      // sln 放 Mod 根而非 src/,这样 IDE 打开 Mod 根时窗口标题 = Mod 名(不是 "src")
+      await fs.writeFile(join(modDirPath, `${input.modName}.sln`), slnText, 'utf-8')
     } catch (e) {
       errors.push(`写文件失败:${(e as Error).message}`)
       return { success: false, modDirPath, errors }
