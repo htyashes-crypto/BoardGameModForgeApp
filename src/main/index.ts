@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { ProjectScanService } from './services/ProjectScanService'
 import { ProjectBindingService } from './services/ProjectBindingService'
@@ -28,6 +29,23 @@ const modBuildService = new ModBuildService(modScanService)
 const ideDetectionService = new IdeDetectionService()
 const ideLaunchService = new IdeLaunchService()
 
+/**
+ * 解析 BrowserWindow icon 路径(dev 模式生效;packed 模式由 electron-builder 嵌入 .exe 自动生效)。
+ * 候选顺序:resources/icon.ico(Windows 最佳)→ icon.png(跨平台 fallback);文件不存在返 undefined,
+ * Electron 会自动 fall back 到 .exe 内嵌或默认图标。
+ */
+function resolveWindowIcon(): string | undefined {
+  const baseDir = join(process.cwd(), 'resources')
+  const candidates = process.platform === 'win32'
+    ? ['icon.ico', 'icon.png']
+    : ['icon.png']
+  for (const name of candidates) {
+    const full = join(baseDir, name)
+    if (existsSync(full)) return full
+  }
+  return undefined
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -35,6 +53,7 @@ function createWindow(): void {
     minWidth: 1000,
     minHeight: 720,
     backgroundColor: '#0a0a0a',
+    icon: resolveWindowIcon(),
     show: false,
     autoHideMenuBar: true,
     webPreferences: {

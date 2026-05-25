@@ -14,7 +14,7 @@
     "preview": "node scripts/launch.cjs electron-vite preview",
     "release": "electron-vite build && electron-builder --publish always",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
-    "icons:generate": "electron-icon-builder --input=resources/icon.svg --output=resources --flatten"
+    "icons:generate": "node scripts/generate-icons.cjs"
   },
   "dependencies": {
     "electron-store": "^7.0.3",
