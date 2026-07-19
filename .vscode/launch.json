@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ModForge: Dev",
+      "name": "ModForge: Dev (Tauri)",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": ["tauri", "dev"],
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**"],
       "presentation": {
@@ -27,20 +27,6 @@
       "presentation": {
         "group": "2_modforge-build",
         "order": 1
-      }
-    },
-    {
-      "name": "ModForge: Build (Mac)",
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["build:mac"],
-      "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"],
-      "presentation": {
-        "group": "2_modforge-build",
-        "order": 2
       }
     }
   ]

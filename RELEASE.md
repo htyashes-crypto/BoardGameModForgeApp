@@ -1,131 +1,63 @@
-# ModForge 发版流程
+# ModForge 发版流程(v2 · Tauri 2,仅 Windows)
 
-参考姊妹工具 BlueprintDebugApp / HtyHubApp 的 `electron-builder + electron-updater + GitHub Releases` 链路。
+> v2 起为 Tauri 2 栈:NSIS 安装包 + tauri updater(GitHub Releases `latest.json`)。
+> 旧 Electron 装机(≤0.1.0)与新链互不相通,需人工告知重装(全局决策 G2-A)。
+> Mac 暂不发(决策 3-A);真实需求出现时另立子 plan。
 
-## 前置准备(只做一次)
+## 前置(一次性)
 
-### 1. GitHub Personal Access Token
-
-发版命令需要 `GH_TOKEN` 环境变量推送 release 到 GitHub。
-
-1. 进 https://github.com/settings/tokens → Generate new token (classic)
-2. 勾选权限:`repo`(完整 repo 权限);若仓库是公开的,`public_repo` 也行
-3. 复制 token,**只显示一次**
-4. 设环境变量:
-
-```powershell
-# 当前会话
-$env:GH_TOKEN = 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-
-# 永久(写入用户环境变量)
-[System.Environment]::SetEnvironmentVariable('GH_TOKEN', 'ghp_xxx...', 'User')
-```
-
-### 2. 检查 electron-builder.yml
-
-确认 `publish.repo: BoardGameModForgeApp`(已配)。
-
-### 3. 检查 package.json version
-
-每次发版前 bump version(`patch` / `minor` / `major`)。
-
----
-
-## 发版步骤
-
-### Step 1:bump version
-
-```powershell
-cd ModForgeApp
-
-# 选一种
-npm version patch    # 0.1.0 → 0.1.1
-npm version minor    # 0.1.0 → 0.2.0
-npm version major    # 0.1.0 → 1.0.0
-```
-
-这会更新 `package.json` + 自动 `git commit` + `git tag v0.1.x`。
-
-### Step 2:typecheck(可选但推荐)
-
-```powershell
-pnpm typecheck
-```
-
-### Step 3:打包 + 推送 release
-
-```powershell
-pnpm release
-```
-
-等价于 `electron-vite build && electron-builder --publish always`。
-
-完成后:
-- `dist/ModForge-Setup-x.y.z-x64.exe` (NSIS 安装器)
-- `dist/ModForge-Portable-x.y.z-x64.exe` (便携版)
-- `dist/latest.yml` (electron-updater 元数据)
-- 全部自动上传到 https://github.com/htyashes-crypto/BoardGameModForgeApp/releases
-
-### Step 4:推送 git tag
-
-```powershell
-git push --tags
-git push    # 推送 npm version 自动创建的 commit
-```
-
-### Step 5:在 GitHub Release 页加 Release Notes
-
-电子构建器创建的是空 Release Body。手动去 https://github.com/htyashes-crypto/BoardGameModForgeApp/releases 编辑 → 写本版本变更。
-
-或用 GitHub API + PowerShell 批量写入(参 [[blueprint-debug-app-release]] skill 模式):
-
-```powershell
-$body = @"
-## 本版本更新
-
-- feat: ...
-- fix: ...
-"@
-$bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-$bodyEncoded = [System.Text.Encoding]::UTF8.GetString($bodyBytes)
-
-# 查 release id
-$release = Invoke-RestMethod -Headers @{Authorization="token $env:GH_TOKEN"} `
-  -Uri "https://api.github.com/repos/htyashes-crypto/BoardGameModForgeApp/releases/tags/v0.1.1"
-
-# PATCH body
-Invoke-RestMethod -Method Patch `
-  -Headers @{Authorization="token $env:GH_TOKEN"} `
-  -Uri "https://api.github.com/repos/htyashes-crypto/BoardGameModForgeApp/releases/$($release.id)" `
-  -Body (@{body=$bodyEncoded} | ConvertTo-Json) `
-  -ContentType 'application/json'
-```
-
----
-
-## 验证更新链路
-
-1. 假设当前 v0.1.0 已装在用户机器(从 v0.1.0 NSIS 安装器装)
-2. 发版 v0.1.1 → 推送到 GitHub Releases
-3. 用户启动现有 v0.1.0 ModForge → 几秒内 UpdateModal 弹窗显示"检测到新版本 v0.1.1"
-4. 用户点"立即更新" → 进度条 → 下载完成 → 点"立即重启安装" → 重启进 v0.1.1
-
----
-
-## 故障排查
-
-| 症状 | 可能原因 |
+| 项 | 说明 |
 |---|---|
-| `pnpm release` 报 `401 Unauthorized` | `GH_TOKEN` 没设 / 权限不够 |
-| `electron-builder` 找不到 icon | resources/icon.ico 缺失或 electron-builder.yml `buildResources` 路径错 |
-| Release 上传成功但 UpdateModal 不弹 | dev 模式下不工作;只在 NSIS 安装版生效。或 release 不是 published(草稿状态) |
-| 用户看到 UpdateModal 但点"立即更新"卡住 | 网络问题 / GitHub 限流 / latest.yml 文件签名不匹配 |
-| UpdateModal 永远显示"更新检查失败" | 检查 main 进程 console 日志;常见是 `releaseType: draft` 没改成 `release` |
+| 签名私钥 | `%USERPROFILE%\.tauri\modforge.key`(无密码)。**丢失 = 老装机无法验签新版,只能重装 —— 必须备份**。pubkey 已写进 `src-tauri/tauri.conf.json` plugins.updater。签名环境变量用 `TAURI_SIGNING_PRIVATE_KEY`(直接放私钥文件路径;注意 PowerShell 给环境变量赋空串 = 删除该变量) |
+| GH_TOKEN | GitHub PAT(repo 权限),发版会话内 `$env:GH_TOKEN = 'ghp_xxx'` |
+| 远端 | `https://github.com/htyashes-crypto/BoardGameModForgeApp`(updater endpoint 指向其 latest release) |
 
----
+## 发版五步
 
-## 相关 skill 引用
+```powershell
+# 1. bump 三处版本(package.json / Cargo.toml / tauri.conf.json 唯一入口)
+node scripts/bump-version.cjs patch     # 或 minor / major / x.y.z
 
-- [[blueprint-debug-app-release]] — 同款发版流程的完整 skill(可作为详细参考)
-- [[htyhubapp-release]] — 同款流程
-- [[electron-release]] — 通用 Electron 发版 skill
+# 2. 质量门
+pnpm typecheck
+cargo test --manifest-path src-tauri/Cargo.toml   # PowerShell 跑,勿用 Git Bash
+
+# 3. 提交并推送(tag 必须先于 release 存在于远端)
+git add -A; git commit -m "release: vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+
+# 4. 一键发版:签名构建 + 组装 win-unpacked + latest.json + GitHub Release 上传并设 latest
+$env:GH_TOKEN = 'ghp_xxx'
+pnpm release -- --notes "本版更新说明"
+
+# 5. 验证:装上一版 → 设置 → 检查更新,应检出新版并完成 下载 → 重启安装
+```
+
+## 产物与位置
+
+| 产物 | 位置 | 用途 |
+|---|---|---|
+| `ModForge_<v>_x64-setup.exe` + `.sig` | `src-tauri/target/release/bundle/nsis/` | NSIS 安装包 + updater 验签 |
+| `latest.json` | 同上(由 release.cjs 生成并上传) | updater endpoint 清单 |
+| `dist/win-unpacked/ModForge.exe` | 由 `assemble-win-unpacked.cjs` 组装 | **E 侧契约**:BoardGameEditor 一键打包直接复制此目录 |
+
+## E 侧联动(改码后没发版时)
+
+只想让桌游包拿到最新 ModForge,不发版也行:
+
+```powershell
+pnpm build:win   # = tauri build + 组装 dist/win-unpacked(modforge_precheck 检查该目录)
+```
+
+注意:`dist-web/` 是 vite 前端产物、`dist/` 专属 E 侧分发契约 —— 两者职责隔离,
+勿把 vite outDir 改回 `dist/`(2026-07-19 踩坑:emptyOutDir 清空过 win-unpacked)。
+
+## 排错
+
+| 症状 | 处理 |
+|---|---|
+| 构建报 "public key has been found, but no private key" | `$env:TAURI_SIGNING_PRIVATE_KEY = "$env:USERPROFILE\.tauri\modforge.key"`(release.cjs 已默认注入) |
+| release.cjs 报三处版本不一致 | 只用 `bump-version.cjs` 改版本,勿手改单处 |
+| 安装版检查更新报错 | 确认 release 已设 latest 且含 `latest.json` 资产;dev 模式不支持更新属预期 |
+| 目标机启动无窗口 | 缺 WebView2 运行时(Win10/11 常规自带);装 Evergreen 运行时 |
