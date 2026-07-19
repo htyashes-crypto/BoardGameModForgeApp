@@ -33,20 +33,8 @@ const notesIdx = args.indexOf("--notes");
 const notes = notesIdx >= 0 ? args[notesIdx + 1] : `ModForge v${version}`;
 
 if (!args.includes("--skip-build")) {
-  console.log(`> 签名构建 v${version}(NSIS + updater 产物)…`);
-  execSync("pnpm tauri build", {
-    cwd: root,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      // tauri v2 认 TAURI_SIGNING_PRIVATE_KEY(可直接放私钥文件路径);密钥无密码
-      TAURI_SIGNING_PRIVATE_KEY:
-        process.env.TAURI_SIGNING_PRIVATE_KEY ??
-        path.join(process.env.USERPROFILE ?? "", ".tauri", "modforge.key"),
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD ?? "",
-    },
-  });
-  execSync("node scripts/assemble-win-unpacked.cjs", { cwd: root, stdio: "inherit" });
+  console.log(`> 签名构建 v${version}(NSIS + updater 产物 + win-unpacked)…`);
+  execSync("node scripts/build-win.cjs", { cwd: root, stdio: "inherit" });
 }
 
 const nsisDir = path.join(root, "src-tauri", "target", "release", "bundle", "nsis");

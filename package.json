@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
-    "build:win": "tauri build && node scripts/assemble-win-unpacked.cjs",
+    "build:win": "node scripts/build-win.cjs",
     "release": "node scripts/release.cjs"
   },
   "dependencies": {
