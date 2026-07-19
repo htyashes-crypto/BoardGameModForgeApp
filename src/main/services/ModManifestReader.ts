@@ -84,11 +84,18 @@ export class ModManifestReader {
         description: readString(json, 'description') ?? undefined,
         author: readString(json, 'author') ?? undefined,
         behaviourIdPrefix: readString(json, 'behaviourIdPrefix') ?? undefined,
-        dependencies
+        dependencies,
+        layer: readLayer(json)
       },
       errors: []
     }
   }
+}
+
+function readLayer(obj: Record<string, unknown>): 'base' | 'mid' | 'app' | undefined {
+  const v = obj['layer']
+  if (v === 'base' || v === 'mid' || v === 'app') return v
+  return undefined
 }
 
 function readString(obj: Record<string, unknown>, key: string): string | null {

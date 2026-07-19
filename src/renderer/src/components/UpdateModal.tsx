@@ -21,7 +21,7 @@ export function UpdateModal() {
   const releaseDate = info?.releaseDate ? new Date(info.releaseDate).toLocaleDateString('zh-CN') : ''
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/70 grid place-items-center">
+    <div className="fixed inset-0 z-[60] bg-overlay/70 grid place-items-center">
       <div className="w-[640px] max-h-[80vh] bg-panel-gradient border border-border-frame rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <header className="px-6 py-4 border-b border-border-subtle flex items-center gap-3">

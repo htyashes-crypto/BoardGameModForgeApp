@@ -19,19 +19,21 @@ export interface ModManifestJs {
   author?: string
   dependencies: ModDependency[]
   behaviourIdPrefix?: string
+  /** 开发者声明的架构层级(主题群「Mod 开发环境作为独立引擎」收尾补完)。 */
+  layer?: 'base' | 'mid' | 'app'
 }
 
 /** 扫到的一个 [ModObjectBehaviour] 类元信息(由 src/*.cs 正则提取)。 */
 export interface BehaviourMeta {
   /** 类名(含 Behaviour 后缀)。 */
   className: string
-  /** [ModObjectBehaviour(Id=...)] 解析出来的 BehaviourId;无 attribute 参数时 null。 */
+  /** [ModObjectBehaviour(id)] 首个位置参数解析出的 BehaviourId(字面量或常量引用 resolve);解析不到时 null。 */
   behaviourId: string | null
   /** DisplayName attribute 参数。 */
   displayName: string | null
   /** Category attribute 参数。 */
   category: string | null
-  /** 相对 src/ 的文件名,如 "RollDiceBehaviour.cs"。 */
+  /** 相对 src/ 的路径(含子目录),如 "Behaviours/RollDiceBehaviour.cs"。 */
   sourceFile: string
 }
 

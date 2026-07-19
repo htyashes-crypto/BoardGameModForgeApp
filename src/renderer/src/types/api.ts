@@ -23,6 +23,22 @@ export interface ModForgeWindowApi {
     create(input: CreateModInput): Promise<CreateModResult>
     delete(input: DeleteModInput): Promise<DeleteModResult>
   }
+  devEnv: {
+    getSnapshot(): Promise<DevEnvSnapshot>
+    browseModSdkDir(): Promise<string | null>
+    browseDownloadDir(): Promise<string | null>
+    validateModSdkPath(path: string): Promise<ValidationResult>
+    setModSdkPath(path: string | null): Promise<DevEnvSnapshot>
+    downloadFromGitHub(targetDir: string): Promise<{
+      success: boolean
+      modSdkPath?: string
+      error?: string
+      output: string
+    }>
+    openGitHubUrl(): Promise<string>
+    getGitHubRepoUrl(): Promise<string>
+    onDownloadLog(cb: (line: string) => void): () => void
+  }
   behaviour: {
     create(input: CreateBehaviourInput): Promise<CreateBehaviourResult>
   }
@@ -61,6 +77,33 @@ export interface DetectedIde {
   path: string
 }
 
+// 原 `StandaloneContextDto` 已删(主题群「Mod 开发环境作为独立引擎」Phase 5)— 单一工作模式回退,无需 standalone context
+
+/**
+ * Mod 开发环境(ModSDK)路径校验结果(与 main 端 `ModDevEnvService.ValidationResult` 同步)。
+ */
+export interface ValidationResult {
+  ok: boolean
+  code:
+    | 'OK'
+    | 'PATH_NOT_FOUND'
+    | 'PATH_NOT_DIR'
+    | 'MISSING_MANIFEST'
+    | 'INVALID_MANIFEST'
+    | 'MISSING_LIB'
+  message: string
+  sdkVersion?: string
+  contentHash?: string
+}
+
+export interface DevEnvSnapshot {
+  modSdkPath: string | null
+  validation: ValidationResult | null
+}
+
+/** Mod 架构层级(开发者声明)。 */
+export type ModLayer = 'base' | 'mid' | 'app'
+
 export interface CreateModInput {
   projectPath: string
   modName: string
@@ -70,6 +113,8 @@ export interface CreateModInput {
   author?: string
   behaviourIdPrefix?: string
   dependencies: ModDependency[]
+  /** 开发者声明的架构层级(主题群「Mod 开发环境作为独立引擎」收尾补完)。 */
+  layer?: ModLayer
 }
 
 export interface CreateModResult {

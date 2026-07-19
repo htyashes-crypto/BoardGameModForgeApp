@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { CreateModInput, ModDependency, ModInfo } from '../types/api'
+import type { CreateModInput, ModDependency, ModInfo, ModLayer } from '../types/api'
 
 const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/
 const ID_PATTERN = /^[a-z][a-z0-9._-]+$/
@@ -26,6 +26,8 @@ export function NewModModal({ projectPath, projectName, existingMods, onClose, o
   const [description, setDescription] = useState('')
   const [author, setAuthor] = useState('')
   const [selectedDeps, setSelectedDeps] = useState<Record<string, boolean>>({})
+  /** 主题群「Mod 开发环境作为独立引擎」收尾:开发者声明架构层级,默认 app(应用层最常见)。 */
+  const [layer, setLayer] = useState<ModLayer>('app')
   const [openInIde, setOpenInIde] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitErrors, setSubmitErrors] = useState<string[]>([])
@@ -101,7 +103,8 @@ export function NewModModal({ projectPath, projectName, existingMods, onClose, o
       version,
       description: description.trim() || undefined,
       author: author.trim() || undefined,
-      dependencies: selectedDepRefs
+      dependencies: selectedDepRefs,
+      layer
     }
     try {
       const result = await window.api.mod.create(input)
@@ -119,7 +122,7 @@ export function NewModModal({ projectPath, projectName, existingMods, onClose, o
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 grid place-items-center"
+      className="fixed inset-0 z-50 bg-overlay/70 grid place-items-center"
       onClick={onClose}
     >
       <div
@@ -190,12 +193,40 @@ export function NewModModal({ projectPath, projectName, existingMods, onClose, o
               <InputBlock hint="描述(可选)" value={description} onChange={setDescription} placeholder="" />
               <InputBlock hint="作者(可选)" value={author} onChange={setAuthor} placeholder="" />
             </div>
+
+            {/* 架构层级声明(主题群「Mod 开发环境作为独立引擎」收尾) */}
+            <div className="mt-4">
+              <FieldLabel>▸ 架构层级</FieldLabel>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <LayerOption
+                  selected={layer === 'base'}
+                  onClick={() => setLayer('base')}
+                  title="基础库"
+                  desc="提供 API 给其他 Mod 调用,自身不含完整游戏逻辑"
+                  color="status-ok"
+                />
+                <LayerOption
+                  selected={layer === 'mid'}
+                  onClick={() => setLayer('mid')}
+                  title="中间层"
+                  desc="依赖基础库,封装通用能力;被应用层引用"
+                  color="status-info"
+                />
+                <LayerOption
+                  selected={layer === 'app'}
+                  onClick={() => setLayer('app')}
+                  title="应用层"
+                  desc="终端业务实现(默认);通常依赖基础库或中间层"
+                  color="brand-base"
+                />
+              </div>
+            </div>
           </section>
 
           {/* Dependencies */}
           <section>
             <FieldLabel>▸ 依赖现有 MOD (可选 · 类比 Minecraft 前置)</FieldLabel>
-            <div className="mt-3 bg-[#0d0d0d] border border-border-frame rounded-xl p-3">
+            <div className="mt-3 bg-bg-deepest border border-border-frame rounded-xl p-3">
               {existingMods.length === 0 ? (
                 <div className="text-2xs text-fg-muteBright italic text-center py-4">
                   当前工程暂无其他 Mod 可依赖
@@ -239,7 +270,7 @@ export function NewModModal({ projectPath, projectName, existingMods, onClose, o
           {/* Preview */}
           <section>
             <FieldLabel>▸ 将生成的工程骨架</FieldLabel>
-            <div className="mt-3 bg-[#0d0d0d] border border-border-frame rounded-xl p-4 font-mono text-2xs text-fg-mute leading-relaxed">
+            <div className="mt-3 bg-bg-deepest border border-border-frame rounded-xl p-4 font-mono text-2xs text-fg-mute leading-relaxed">
               <div className="text-status-warn">📂 ModBehaviourProject/</div>
               <div>└─ <span className="text-status-ok">📂 {modName || '<ModName>'}/</span></div>
               <div>    ├─ <span className="text-status-ok">📄 mod.json</span> <span className="text-fg-muteDim">// id+version+deps[{selectedDepRefs.length}]</span></div>
@@ -324,5 +355,36 @@ function InputBlock({
       />
       {error && <div className="text-3xs text-status-danger mt-1">{error}</div>}
     </div>
+  )
+}
+
+interface LayerOptionProps {
+  selected: boolean
+  onClick(): void
+  title: string
+  desc: string
+  /** tailwind 颜色 token(如 'brand-base' / 'status-ok' / 'status-info')。 */
+  color: string
+}
+
+function LayerOption({ selected, onClick, title, desc, color }: LayerOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-3 rounded-lg border text-left transition-soft duration-150 ${
+        selected
+          ? `bg-bg-card border-${color} ring-1 ring-${color}/40`
+          : 'bg-bg-input border-border-frame hover:border-fg-mute'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`inline-block w-2 h-2 rounded-full ${selected ? `bg-${color}` : 'bg-fg-muteDim'}`}
+        />
+        <span className={`text-sm font-bold ${selected ? `text-${color}` : 'text-fg-base'}`}>{title}</span>
+      </div>
+      <div className="text-3xs text-fg-muteBright mt-1.5 leading-relaxed">{desc}</div>
+    </button>
   )
 }

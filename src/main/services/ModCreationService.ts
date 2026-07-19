@@ -5,6 +5,7 @@ import { renderCsproj, type SiblingModRef } from '../templates/csprojTemplate'
 import { renderModJson } from '../templates/modJsonTemplate'
 import { renderSln } from '../templates/slnTemplate'
 import type { ModScanService } from './ModScanService'
+import type { ModDevEnvService } from './ModDevEnvService'
 
 const MOD_BEHAVIOUR_PROJECT_DIR = 'ModBehaviourProject'
 const ID_PATTERN = /^[a-z][a-z0-9._-]+$/
@@ -25,6 +26,8 @@ export interface CreateModInput {
   behaviourIdPrefix?: string
   /** 依赖列表(基于 modId + 版本范围)。 */
   dependencies: ModDependency[]
+  /** 开发者声明的架构层级(主题群「Mod 开发环境作为独立引擎」收尾补完)。 */
+  layer?: 'base' | 'mid' | 'app'
 }
 
 export interface CreateModResult {
@@ -45,7 +48,10 @@ export interface CreateModResult {
  * 校验规则:modName 合法 + 不重名;modId 合法 + 不重名;dependencies 各项在当前工程已存在。
  */
 export class ModCreationService {
-  constructor(private scanService: ModScanService) {}
+  constructor(
+    private scanService: ModScanService,
+    private devEnv?: ModDevEnvService
+  ) {}
 
   async create(input: CreateModInput): Promise<CreateModResult> {
     const errors: string[] = []
@@ -106,6 +112,8 @@ export class ModCreationService {
 
     const behaviourIdPrefix = input.behaviourIdPrefix ?? deriveBehaviourIdPrefix(input.modId)
 
+    // 主题群「Mod 开发环境作为独立引擎」收尾:从 ModSdk manifest 读 sdkVersion + contentHash 印章
+    const sdkBindings = this.devEnv?.getSdkBindings() ?? undefined
     const modJsonText = renderModJson({
       id: input.modId,
       name: input.modName,
@@ -113,9 +121,18 @@ export class ModCreationService {
       description: input.description,
       author: input.author,
       behaviourIdPrefix,
-      dependencies: input.dependencies
+      dependencies: input.dependencies,
+      sdkBindings,
+      layer: input.layer
     })
-    const csprojText = renderCsproj({ modName: input.modName, siblingMods: siblingRefs })
+    // 主题群「Mod 开发环境作为独立引擎」Phase 5 真机补完:把当前配置的 Mod SDK 路径传给 csproj
+    // 模板,csproj 内 `<ModSdkRoot>` 直接绝对路径硬写;未配置时为空走 fallback + Warning。
+    const modSdkPath = this.devEnv?.getModSdkPath() ?? undefined
+    const csprojText = renderCsproj({
+      modName: input.modName,
+      siblingMods: siblingRefs,
+      modSdkPath
+    })
     const slnText = renderSln(input.modName)
 
     try {

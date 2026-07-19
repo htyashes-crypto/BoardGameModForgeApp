@@ -9,14 +9,17 @@ import { ModScanService } from './services/ModScanService'
 import { ModCreationService } from './services/ModCreationService'
 import { BehaviourCreationService } from './services/BehaviourCreationService'
 import { ModBuildService } from './services/ModBuildService'
+import { ModDeletionService } from './services/ModDeletionService'
 import { IdeDetectionService } from './services/IdeDetectionService'
 import { IdeLaunchService } from './services/IdeLaunchService'
 import { AutoUpdaterService } from './services/AutoUpdaterService'
+import { ModDevEnvService } from './services/ModDevEnvService'
 import { registerProjectIpc } from './ipc/projectIpc'
 import { registerModIpc } from './ipc/modIpc'
 import { registerBuildIpc } from './ipc/buildIpc'
 import { registerIdeIpc } from './ipc/ideIpc'
 import { registerUpdateIpc } from './ipc/updateIpc'
+import { registerDevEnvIpc } from './ipc/devEnvIpc'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -25,9 +28,11 @@ const projectBindingService = new ProjectBindingService()
 const modManifestReader = new ModManifestReader()
 const modGraphService = new ModDependencyGraphService()
 const modScanService = new ModScanService(modManifestReader, modGraphService)
-const modCreationService = new ModCreationService(modScanService)
+const modDevEnvService = new ModDevEnvService()
+const modCreationService = new ModCreationService(modScanService, modDevEnvService)
 const behaviourCreationService = new BehaviourCreationService(modScanService)
 const modBuildService = new ModBuildService(modScanService)
+const modDeletionService = new ModDeletionService(modScanService)
 const ideDetectionService = new IdeDetectionService()
 const ideLaunchService = new IdeLaunchService()
 const autoUpdaterService = new AutoUpdaterService()
@@ -76,12 +81,54 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+/**
+ * 解析 --project <path> / --project=<path> argv 并 auto-bind 到该桌游工程,
+ * 让从桌游编辑器 LeftMenuPanel 拉起的 ModForge 启动即绑定当前工程,免去手工选工程。
+ * 在 createWindow 之前完成,renderer 启动后直接读到 bound 状态。
+ */
+async function tryAutoBindFromArgv(): Promise<void> {
+  const argv = process.argv
+  let projectPath: string | undefined
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === '--project' && i + 1 < argv.length) {
+      projectPath = argv[i + 1]
+      break
+    }
+    if (arg.startsWith('--project=')) {
+      projectPath = arg.slice('--project='.length)
+      break
+    }
+  }
+  if (!projectPath) return
+
+  // 兼容 path 含包裹引号的场景(部分启动器会保留引号)
+  projectPath = projectPath.replace(/^"+|"+$/g, '')
+
+  if (!existsSync(projectPath)) {
+    console.warn(`[ModForge] --project 指向路径不存在,忽略: ${projectPath}`)
+    return
+  }
+
+  const info = await projectScanService.scanSingle(projectPath)
+  if (!info) {
+    console.warn(`[ModForge] --project 扫描失败,忽略: ${projectPath}`)
+    return
+  }
+  projectBindingService.bind(info)
+  console.log(`[ModForge] --project auto-bind 成功: ${info.name} (${info.path})`)
+}
+
+app.whenReady().then(async () => {
+  // 先 auto-bind --project argv 让 renderer 启动直接读到 bound 状态
+  await tryAutoBindFromArgv()
+
   registerProjectIpc(projectScanService, projectBindingService)
-  registerModIpc(modScanService, modCreationService, behaviourCreationService)
+  registerModIpc(modScanService, modCreationService, behaviourCreationService, modDeletionService)
   registerBuildIpc(modBuildService)
   registerIdeIpc(ideDetectionService, ideLaunchService, projectBindingService)
   registerUpdateIpc(autoUpdaterService)
+  registerDevEnvIpc(modDevEnvService)
   createWindow()
 
   if (mainWindow) {

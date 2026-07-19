@@ -1,51 +1,55 @@
 /** @type {import('tailwindcss').Config} */
-// ModForge 调色板:黑底 + 橙金品牌色,参考 .claude/svg/modforge-*.svg 设计稿
+// ModForge 调色板:channel CSS 变量驱动双主题(dark 默认 :root / light .light,定义见 globals.css)。
+// 颜色统一 rgb(var(--x) / <alpha-value>) —— 保证 bg-xxx/20、border-xxx/40 等透明度修饰跨主题生效。
 export default {
   content: ['./src/renderer/**/*.{html,ts,tsx}'],
   theme: {
     extend: {
       colors: {
         bg: {
-          base: '#0a0a0a',
-          titlebar: '#0d0d0d',
-          panel: '#1a1a1a',
-          panelTop: '#2a2a2a',
-          card: '#262626',
-          cardBottom: '#181818',
-          input: '#101010',
-          select: '#3a2a14',
-          selectBottom: '#1f1608'
+          base: 'rgb(var(--bg-base) / <alpha-value>)',
+          titlebar: 'rgb(var(--bg-titlebar) / <alpha-value>)',
+          panel: 'rgb(var(--bg-panel) / <alpha-value>)',
+          panelTop: 'rgb(var(--bg-panelTop) / <alpha-value>)',
+          card: 'rgb(var(--bg-card) / <alpha-value>)',
+          cardBottom: 'rgb(var(--bg-cardBottom) / <alpha-value>)',
+          input: 'rgb(var(--bg-input) / <alpha-value>)',
+          select: 'rgb(var(--bg-select) / <alpha-value>)',
+          selectBottom: 'rgb(var(--bg-selectBottom) / <alpha-value>)',
+          deepest: 'rgb(var(--bg-deepest) / <alpha-value>)'
         },
         border: {
-          frame: '#3a3a3a',
-          subtle: '#2a2a2a',
-          inner: '#4a4a4a',
-          brand: '#f5a623',
-          ok: '#6bcb77',
-          info: '#9cdcfe',
-          danger: '#c14545'
+          frame: 'rgb(var(--border-frame) / <alpha-value>)',
+          subtle: 'rgb(var(--border-subtle) / <alpha-value>)',
+          inner: 'rgb(var(--border-inner) / <alpha-value>)',
+          brand: 'rgb(var(--border-brand) / <alpha-value>)',
+          ok: 'rgb(var(--border-ok) / <alpha-value>)',
+          info: 'rgb(var(--border-info) / <alpha-value>)',
+          danger: 'rgb(var(--border-danger) / <alpha-value>)'
         },
         fg: {
-          base: '#e8e8e8',
-          mute: '#aaa',
-          muteBright: '#888',
-          muteDim: '#555',
-          accentInfo: '#9cdcfe'
+          base: 'rgb(var(--fg-base) / <alpha-value>)',
+          mute: 'rgb(var(--fg-mute) / <alpha-value>)',
+          muteBright: 'rgb(var(--fg-muteBright) / <alpha-value>)',
+          muteDim: 'rgb(var(--fg-muteDim) / <alpha-value>)',
+          accentInfo: 'rgb(var(--fg-accentInfo) / <alpha-value>)'
         },
         brand: {
-          base: '#f5a623',
-          bright: '#ffb84d',
-          deep: '#c88010',
-          glow: '#ffc15c'
+          base: 'rgb(var(--brand-base) / <alpha-value>)',
+          bright: 'rgb(var(--brand-bright) / <alpha-value>)',
+          deep: 'rgb(var(--brand-deep) / <alpha-value>)',
+          glow: 'rgb(var(--brand-glow) / <alpha-value>)'
         },
         status: {
-          ok: '#6bcb77',
-          warn: '#ffb700',
-          danger: '#ff6b6b',
-          live: '#4ec9b0',
-          highlight: '#ffd700',
-          info: '#9cdcfe'
-        }
+          ok: 'rgb(var(--status-ok) / <alpha-value>)',
+          warn: 'rgb(var(--status-warn) / <alpha-value>)',
+          danger: 'rgb(var(--status-danger) / <alpha-value>)',
+          live: 'rgb(var(--status-live) / <alpha-value>)',
+          highlight: 'rgb(var(--status-highlight) / <alpha-value>)',
+          info: 'rgb(var(--status-info) / <alpha-value>)'
+        },
+        // 蒙层基色(alpha 由 bg-overlay/70 等 utility 控制;dark=黑 light=深灰)
+        overlay: 'rgb(var(--overlay) / <alpha-value>)'
       },
       fontFamily: {
         ui: ['"PingFang SC"', '"Microsoft YaHei"', '"Segoe UI"', 'sans-serif'],
@@ -56,10 +60,18 @@ export default {
         '3xs': '10px'
       },
       backgroundImage: {
-        'panel-gradient': 'linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%)',
-        'card-gradient': 'linear-gradient(to bottom, #262626 0%, #181818 100%)',
-        'select-gradient': 'linear-gradient(to bottom, #3a2a14 0%, #1f1608 100%)',
-        'brand-gradient': 'linear-gradient(to bottom, #ffc15c 0%, #f5a623 50%, #c88010 100%)'
+        // 实为纯色(语义保留 *-gradient 名,组件零改动);原笔误写成纯 hex 作 background-image 非法被丢弃,
+        // 现改为合法的"同色 linear-gradient" → 背景真正生效,light 主题层次正确(见计划决策 5)。
+        'panel-gradient': 'linear-gradient(rgb(var(--gradient-panel)), rgb(var(--gradient-panel)))',
+        'card-gradient': 'linear-gradient(rgb(var(--gradient-card)), rgb(var(--gradient-card)))',
+        'select-gradient': 'linear-gradient(rgb(var(--gradient-select)), rgb(var(--gradient-select)))',
+        'brand-gradient': 'linear-gradient(rgb(var(--gradient-brand)), rgb(var(--gradient-brand)))'
+      },
+      transitionProperty: {
+        soft: 'background-color, border-color, color, opacity'
+      },
+      transitionTimingFunction: {
+        soft: 'cubic-bezier(0.4, 0, 0.2, 1)'
       }
     }
   },

@@ -8,13 +8,15 @@ interface BuildingPaneProps {
   selectedMod: ModInfo
   /** 全工程 Mod Id → ModInfo 映射,用于 stepper 显示名/版本。 */
   allMods: ModInfo[]
+  /** 终态时关闭日志面板,回到 ModDetailPane。 */
+  onClose(): void
 }
 
 /**
  * 编译进行中视图。覆盖 ModDetailPane,展示 stepper + 实时日志。
  * 对应 mockup `.claude/svg/modforge-workspace-building.svg`。
  */
-export function BuildingPane({ task, selectedMod, allMods }: BuildingPaneProps) {
+export function BuildingPane({ task, selectedMod, allMods, onClose }: BuildingPaneProps) {
   const cancelBuild = useBuildStore((s) => s.cancelBuild)
   const logs = useBuildStore((s) => s.logs)
   const logEnd = useRef<HTMLDivElement | null>(null)
@@ -68,7 +70,9 @@ export function BuildingPane({ task, selectedMod, allMods }: BuildingPaneProps) 
               ⏹ 取消编译
             </button>
           ) : (
-            <span className="text-2xs text-fg-muteBright">点击下方关闭日志面板</span>
+            <button onClick={onClose} className="btn-ghost h-10 px-4 rounded-lg text-sm">
+              ✕ 关闭日志面板
+            </button>
           )}
         </div>
       </header>
@@ -94,7 +98,7 @@ export function BuildingPane({ task, selectedMod, allMods }: BuildingPaneProps) 
             tail -f · 自动滚动 · {logs.length} 行
           </span>
         </div>
-        <div className="flex-1 bg-[#0d0d0d] border border-border-frame rounded-xl p-4 overflow-y-auto font-mono text-2xs leading-relaxed">
+        <div className="flex-1 bg-bg-deepest border border-border-frame rounded-xl p-4 overflow-y-auto font-mono text-2xs leading-relaxed">
           {logs.map((chunk, i) => (
             <LogLine key={i} chunk={chunk} />
           ))}

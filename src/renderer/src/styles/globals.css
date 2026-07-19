@@ -3,6 +3,108 @@
 @tailwind utilities;
 
 @layer base {
+  /* ===================================================================
+   * 主题变量:默认 dark(:root),light 由 <html class="light"> 覆盖。
+   * 颜色统一存 "R G B" channel 值,供 tailwind 的 rgb(var(--x) / <alpha-value>)
+   * 引用 —— 这样所有 bg-xxx/20、border-xxx/40 等透明度修饰在两主题下都生效。
+   * =================================================================== */
+  :root {
+    /* 背景层 */
+    --bg-base: 31 31 31;
+    --bg-titlebar: 22 22 22;
+    --bg-panel: 31 31 31;
+    --bg-panelTop: 38 38 38;
+    --bg-card: 37 37 37;
+    --bg-cardBottom: 28 28 28;
+    --bg-input: 24 24 24;
+    --bg-select: 58 42 20;
+    --bg-selectBottom: 31 22 8;
+    --bg-deepest: 13 13 13;
+    /* 边框 */
+    --border-frame: 58 58 58;
+    --border-subtle: 42 42 42;
+    --border-inner: 74 74 74;
+    --border-brand: 245 166 35;
+    --border-ok: 107 203 119;
+    --border-info: 156 220 254;
+    --border-danger: 193 69 69;
+    /* 前景文字 */
+    --fg-base: 232 232 232;
+    --fg-mute: 170 170 170;
+    --fg-muteBright: 136 136 136;
+    --fg-muteDim: 85 85 85;
+    --fg-accentInfo: 156 220 254;
+    /* 品牌橙金(跨主题保持) */
+    --brand-base: 245 166 35;
+    --brand-bright: 255 184 77;
+    --brand-deep: 200 128 16;
+    --brand-glow: 255 193 92;
+    /* 状态色 */
+    --status-ok: 107 203 119;
+    --status-warn: 255 183 0;
+    --status-danger: 255 107 107;
+    --status-live: 78 201 176;
+    --status-highlight: 255 215 0;
+    --status-info: 156 220 254;
+    /* "gradient" token(实为纯色,语义保留;原 backgroundImage 笔误写成纯 hex 非法,现合法化) */
+    --gradient-panel: 31 31 31;
+    --gradient-card: 34 34 34;
+    --gradient-select: 42 32 20;
+    --gradient-brand: 245 166 35;
+    /* 杂项:蒙层基色 / body 底 / 滚动条 / 棋盘格线 */
+    --overlay: 0 0 0;
+    --body-bg: 10 10 10;
+    --scrollbar-track: 13 13 13;
+    --scrollbar-thumb: 58 58 58;
+    --scrollbar-thumb-hover: 74 74 74;
+    --board-grid-line: 24 24 24;
+  }
+
+  .light {
+    --bg-base: 245 245 244;
+    --bg-titlebar: 235 235 233;
+    --bg-panel: 255 255 255;
+    --bg-panelTop: 250 250 249;
+    --bg-card: 255 255 255;
+    --bg-cardBottom: 240 240 239;
+    --bg-input: 240 240 238;
+    --bg-select: 253 240 219;
+    --bg-selectBottom: 250 232 200;
+    --bg-deepest: 225 225 222;
+    --border-frame: 216 216 212;
+    --border-subtle: 232 232 228;
+    --border-inner: 200 200 196;
+    --border-brand: 224 144 15;
+    --border-ok: 76 175 80;
+    --border-info: 59 130 196;
+    --border-danger: 193 69 69;
+    --fg-base: 38 38 36;
+    --fg-mute: 102 102 98;
+    --fg-muteBright: 130 127 120;
+    --fg-muteDim: 162 158 152;
+    --fg-accentInfo: 37 99 168;
+    --brand-base: 245 166 35;
+    --brand-bright: 255 184 77;
+    --brand-deep: 200 128 16;
+    --brand-glow: 255 193 92;
+    --status-ok: 76 175 80;
+    --status-warn: 201 138 0;
+    --status-danger: 224 90 90;
+    --status-live: 42 157 137;
+    --status-highlight: 210 160 0;
+    --status-info: 59 130 196;
+    --gradient-panel: 255 255 255;
+    --gradient-card: 255 255 255;
+    --gradient-select: 253 240 219;
+    --gradient-brand: 245 166 35;
+    --overlay: 40 40 40;
+    --body-bg: 236 236 234;
+    --scrollbar-track: 225 225 222;
+    --scrollbar-thumb: 200 200 196;
+    --scrollbar-thumb-hover: 176 176 172;
+    --board-grid-line: 220 220 216;
+  }
+
   html, body, #root {
     height: 100%;
     margin: 0;
@@ -11,10 +113,11 @@
 
   body {
     font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
-    background-color: #0a0a0a;
-    color: #e8e8e8;
+    background-color: rgb(var(--body-bg));
+    color: rgb(var(--fg-base));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* 滚动条 */
@@ -23,14 +126,14 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0d0d0d;
+    background: rgb(var(--scrollbar-track));
   }
   ::-webkit-scrollbar-thumb {
-    background: #3a3a3a;
+    background: rgb(var(--scrollbar-thumb));
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #4a4a4a;
+    background: rgb(var(--scrollbar-thumb-hover));
   }
 }
 
@@ -38,26 +141,26 @@
   /* 棋盘格底纹(用于扫描区域,对应 svg 设计里的 boardGrid pattern) */
   .board-grid {
     background-image:
-      linear-gradient(to right, #181818 1px, transparent 1px),
-      linear-gradient(to bottom, #181818 1px, transparent 1px);
+      linear-gradient(to right, rgb(var(--board-grid-line)) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--board-grid-line)) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
-  /* 橙色发光效果 */
+  /* 橙色发光效果(品牌色,跨主题保持) */
   .brand-glow {
-    box-shadow: 0 0 12px rgba(245, 166, 35, 0.45);
+    box-shadow: 0 0 12px rgb(var(--brand-base) / 0.45);
   }
 
-  /* 主按钮(渐变橙金) */
+  /* 主按钮(品牌橙底 + 纯黑文本,高对比度);whitespace-nowrap 防窄容器内文字折行 */
   .btn-primary {
-    @apply bg-brand-gradient text-[#1a1000] font-bold tracking-wide border border-brand-base;
-    @apply hover:brightness-110 active:brightness-95 transition-[filter] duration-100;
+    @apply bg-brand-base text-black font-bold tracking-wide border border-brand-deep whitespace-nowrap;
+    @apply hover:bg-brand-bright active:bg-brand-deep transition-colors duration-150;
   }
 
-  /* 次按钮(透明边框) */
+  /* 次按钮(透明 + 浅文本);whitespace-nowrap 防窄容器内文字折行 */
   .btn-ghost {
-    @apply bg-transparent text-fg-base border border-border-frame;
-    @apply hover:bg-border-subtle active:brightness-75 transition-colors duration-100;
+    @apply bg-bg-input text-fg-base border border-border-frame whitespace-nowrap;
+    @apply hover:bg-bg-card hover:border-brand-base active:brightness-90 transition-colors duration-150;
   }
 
   /* 卡片(垂直渐变) */

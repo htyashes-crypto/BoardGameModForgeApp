@@ -38,6 +38,21 @@ const api = {
       return () => ipcRenderer.removeListener('build:state-changed', listener)
     }
   },
+  devEnv: {
+    getSnapshot: () => ipcRenderer.invoke('devEnv:getSnapshot'),
+    browseModSdkDir: () => ipcRenderer.invoke('devEnv:browseModSdkDir'),
+    browseDownloadDir: () => ipcRenderer.invoke('devEnv:browseDownloadDir'),
+    validateModSdkPath: (path: string) => ipcRenderer.invoke('devEnv:validateModSdkPath', path),
+    setModSdkPath: (path: string | null) => ipcRenderer.invoke('devEnv:setModSdkPath', path),
+    downloadFromGitHub: (targetDir: string) => ipcRenderer.invoke('devEnv:downloadFromGitHub', targetDir),
+    openGitHubUrl: () => ipcRenderer.invoke('devEnv:openGitHubUrl'),
+    getGitHubRepoUrl: () => ipcRenderer.invoke('devEnv:getGitHubRepoUrl'),
+    onDownloadLog: (cb: (line: string) => void) => {
+      const listener = (_e: unknown, line: string): void => cb(line)
+      ipcRenderer.on('devEnv:downloadLog', listener)
+      return () => ipcRenderer.removeListener('devEnv:downloadLog', listener)
+    }
+  },
   ide: {
     detectAll: () => ipcRenderer.invoke('ide:detectAll'),
     getPreferred: () => ipcRenderer.invoke('ide:getPreferred'),

@@ -103,7 +103,7 @@ export function NewBehaviourModal({ projectPath, mod, onClose, onCreated }: NewB
   if (!mod.manifest) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-overlay/70 grid place-items-center" onClick={onClose}>
       <div
         className="w-[840px] max-h-[92vh] bg-panel-gradient border border-border-frame rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -227,7 +227,7 @@ export function NewBehaviourModal({ projectPath, mod, onClose, onCreated }: NewB
           {/* Preview */}
           <section>
             <FieldLabel>▸ 将生成的文件</FieldLabel>
-            <div className="mt-3 bg-[#0d0d0d] border border-border-frame rounded-xl p-4 font-mono text-2xs leading-relaxed">
+            <div className="mt-3 bg-bg-deepest border border-border-frame rounded-xl p-4 font-mono text-2xs leading-relaxed">
               <div className="text-status-ok">
                 ＋ ModBehaviourProject/{mod.modDir}/src/{fullClassName || '<ClassName>'}.cs{' '}
                 <span className="text-fg-muteBright">({TEMPLATES.find((t) => t.kind === template)?.title} 模板)</span>

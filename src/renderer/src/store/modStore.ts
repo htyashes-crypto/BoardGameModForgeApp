@@ -28,7 +28,6 @@ export const useModStore = create<ModState>((set, get) => ({
     set({ scanning: true })
     try {
       const snap = await window.api.mod.scanProject(projectPath)
-      // 默认选拓扑序最后一项(应用层);若拓扑失败则选 mods[0]
       let defaultId: string | null = null
       if (snap.topologyOrder.length > 0) defaultId = snap.topologyOrder[snap.topologyOrder.length - 1]
       else if (snap.mods.length > 0 && snap.mods[0].manifest) defaultId = snap.mods[0].manifest.id

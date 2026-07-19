@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs'
+import { promises as fs, type Dirent } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import type { BehaviourMeta, ModInfo, ModListSnapshot } from '../types-mod'
@@ -18,7 +18,20 @@ export class ModScanService {
     private graphService: ModDependencyGraphService
   ) {}
 
+  /**
+   * 源工程模式入口:接收**桌游工程根**,内部 join `ModBehaviourProject/` 后委托给 {@link scanModRoot}。
+   * 主题群 Phase 5 Step 4 后,Standalone 模式调用方直接走 {@link scanModRoot} 接收 `<exe>/Mods/`。
+   */
   async scanProject(projectPath: string): Promise<ModListSnapshot> {
+    const modBehaviourRoot = join(projectPath, MOD_BEHAVIOUR_PROJECT_DIR)
+    return this.scanModRoot(modBehaviourRoot)
+  }
+
+  /**
+   * 直接扫某 mod 根目录(`<projectRoot>/ModBehaviourProject/` 或 `<exe>/Mods/`)。
+   * 主题群「独立桌游包内嵌 Mod SDK」Phase 5 Step 4:Standalone 模式经此入口。
+   */
+  async scanModRoot(modBehaviourRoot: string): Promise<ModListSnapshot> {
     const result: ModListSnapshot = {
       mods: [],
       topologyOrder: [],
@@ -27,12 +40,11 @@ export class ModScanService {
       hasError: false
     }
 
-    const modBehaviourRoot = join(projectPath, MOD_BEHAVIOUR_PROJECT_DIR)
     let dirEntries: string[]
     try {
       dirEntries = await fs.readdir(modBehaviourRoot)
     } catch {
-      // ModBehaviourProject 不存在 → 工程无 Mod(正常情况,空 snapshot)
+      // 根目录不存在 → 当前无 Mod(正常情况,空 snapshot)
       return result
     }
 
@@ -41,6 +53,17 @@ export class ModScanService {
       const modDirPath = join(modBehaviourRoot, dirName)
       const stat = await fs.stat(modDirPath).catch(() => null)
       if (!stat?.isDirectory()) continue
+
+      // 主题群「Mod 开发环境作为独立引擎」补完:与 Loader 对齐 —
+      // 没有 mod.json 的子目录是支撑目录(Shared/Generated 等放共享 dll/codegen 产物),
+      // 静默跳过不视为 Mod;只有"有 mod.json 但解析失败"才作为 Mod 报 manifestErrors。
+      const manifestPath = join(modDirPath, 'mod.json')
+      const manifestExists = await fs
+        .stat(manifestPath)
+        .then((s) => s.isFile())
+        .catch(() => false)
+      if (!manifestExists) continue
+
       const mod = await this.scanSingleMod(dirName, modDirPath)
       result.mods.push(mod)
     }
@@ -103,46 +126,163 @@ export class ModScanService {
     }
   }
 
-  /** 正则扫 src/*.cs 提取 `[ModObjectBehaviour(...)] class XxxBehaviour`。 */
+  /**
+   * 递归扫 src/ 下所有 *.cs(含 Behaviours/ Models/ Util/ 等子目录分层)提取
+   * `[ModObjectBehaviour(...)] class XxxBehaviour`。
+   *
+   * 根因式修复要点:
+   * 1. **递归**:旧实现仅 readdir 第一层,开发者按 .NET 常规用子目录组织代码时一个都扫不到;
+   *    现递归遍历(跳过 obj/bin 等 MSBuild 产物目录)。
+   * 2. **behaviourId 支持常量引用**:构造函数首个位置参数即 BehaviourId(见 ModObjectBehaviourAttribute(string id)),
+   *    既可是字面量 "com.x.y" 也可是常量引用 MyConstants.XxxId;后者经 src/ 内 const string 映射 resolve 出真实值。
+   * 3. **引号感知取参**:平衡括号解析替代脆弱的 [^)]*,避免 Description 内含 ')' 时整条 attribute 漏匹配。
+   */
   private async scanBehaviours(srcDir: string): Promise<BehaviourMeta[]> {
     const out: BehaviourMeta[] = []
-    let files: string[]
-    try {
-      files = await fs.readdir(srcDir)
-    } catch {
-      return out
-    }
 
-    for (const f of files) {
-      if (!f.endsWith('.cs')) continue
-      const full = join(srcDir, f)
-      const st = await fs.stat(full).catch(() => null)
-      if (!st?.isFile()) continue
-      let text: string
+    // 递归收集 src/ 下全部 .cs 相对路径(开发者常用 Behaviours/ Models/ Util/ 子目录分层)
+    const relFiles = await this.collectCsFiles(srcDir)
+    if (relFiles.length === 0) return out
+
+    // 先读全部文本:既用于扫 attribute,也用于建 const string 映射供 behaviourId 常量引用 resolve
+    const texts: { rel: string; text: string }[] = []
+    for (const rel of relFiles) {
       try {
-        text = await fs.readFile(full, 'utf-8')
+        texts.push({ rel, text: await fs.readFile(join(srcDir, rel), 'utf-8') })
       } catch {
-        continue
+        // 单文件读失败跳过,不阻塞其余
       }
+    }
+    const constMap = this.buildConstStringMap(texts.map((t) => t.text))
 
-      // 匹配 [ModObjectBehaviour(...)] 后紧跟的 class 声明;[\s\S] 允许跨行匹配 attribute 与 class 之间的修饰符
-      const regex = /\[ModObjectBehaviour\s*\(([^)]*)\)\][\s\S]*?class\s+(\w+)/g
+    for (const { rel, text } of texts) {
+      const attrStart = /\[ModObjectBehaviour\s*\(/g
       let m: RegExpExecArray | null
-      while ((m = regex.exec(text)) !== null) {
-        const attrArgs = m[1]
-        const className = m[2]
-        const idMatch = /\bId\s*=\s*"([^"]+)"/.exec(attrArgs)
-        const dnMatch = /\bDisplayName\s*=\s*"([^"]+)"/.exec(attrArgs)
-        const catMatch = /\bCategory\s*=\s*"([^"]+)"/.exec(attrArgs)
+      while ((m = attrStart.exec(text)) !== null) {
+        const openIdx = m.index + m[0].length - 1 // 指向 '('
+        const paren = this.readBalancedParen(text, openIdx)
+        if (!paren) continue
+        // ']' 必须紧跟 ')' 之后,再非贪婪匹配到 class 声明
+        const classMatch = /^\s*\][\s\S]*?\bclass\s+(\w+)/.exec(text.slice(paren.closeIdx + 1))
+        if (!classMatch) continue
+
+        const args = paren.inner
+        const dnMatch = /\bDisplayName\s*=\s*"([^"]*)"/.exec(args)
+        const catMatch = /\bCategory\s*=\s*"([^"]*)"/.exec(args)
         out.push({
-          className,
-          behaviourId: idMatch?.[1] ?? null,
+          className: classMatch[1],
+          behaviourId: this.resolveBehaviourId(args, constMap),
           displayName: dnMatch?.[1] ?? null,
           category: catMatch?.[1] ?? null,
-          sourceFile: f
+          sourceFile: rel
         })
+        attrStart.lastIndex = paren.closeIdx // 推进游标,跳过已消费的参数区
       }
     }
     return out
+  }
+
+  /** 递归收集 dir 下所有 .cs 相对路径(相对最初 srcDir);跳过隐藏目录与 obj/bin 等 MSBuild 产物目录。 */
+  private async collectCsFiles(dir: string, relBase = ''): Promise<string[]> {
+    const out: string[] = []
+    let entries: Dirent[]
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true })
+    } catch {
+      return out
+    }
+    for (const e of entries) {
+      const rel = relBase ? `${relBase}/${e.name}` : e.name
+      if (e.isDirectory()) {
+        // 跳过隐藏目录 + build 产物目录(obj/bin),避免扫到自动生成的 AssemblyInfo.cs
+        if (e.name.startsWith('.') || e.name === 'obj' || e.name === 'bin') continue
+        out.push(...(await this.collectCsFiles(join(dir, e.name), rel)))
+      } else if (e.isFile() && e.name.endsWith('.cs')) {
+        out.push(rel)
+      }
+    }
+    return out
+  }
+
+  /** 扫所有 .cs 文本提取 `const string X = "..."` / `static readonly string X = "..."`,建 字段名→值 映射。 */
+  private buildConstStringMap(texts: string[]): Map<string, string> {
+    const map = new Map<string, string>()
+    const re = /\b(?:const|static\s+readonly|readonly\s+static)\s+string\s+(\w+)\s*=\s*"([^"]*)"/g
+    for (const t of texts) {
+      let m: RegExpExecArray | null
+      while ((m = re.exec(t)) !== null) {
+        // 同名取首个;跨文件重名罕见,不覆盖
+        if (!map.has(m[1])) map.set(m[1], m[2])
+      }
+    }
+    return map
+  }
+
+  /**
+   * 从 openIdx 指向的 '(' 起,引号 + 嵌套括号感知地读到配对 ')'。
+   * 返回括号内文本与 ')' 的索引;不配对返回 null。
+   */
+  private readBalancedParen(
+    text: string,
+    openIdx: number
+  ): { inner: string; closeIdx: number } | null {
+    let depth = 0
+    let inStr = false
+    for (let i = openIdx; i < text.length; i++) {
+      const c = text[i]
+      if (inStr) {
+        if (c === '\\') {
+          i++ // 跳过转义字符
+          continue
+        }
+        if (c === '"') inStr = false
+        continue
+      }
+      if (c === '"') inStr = true
+      else if (c === '(') depth++
+      else if (c === ')') {
+        depth--
+        if (depth === 0) return { inner: text.slice(openIdx + 1, i), closeIdx: i }
+      }
+    }
+    return null
+  }
+
+  /**
+   * 解析 [ModObjectBehaviour(...)] 的 BehaviourId:取首个位置参数,
+   * 字面量直取,常量引用(如 MyConstants.XxxId)经 const 映射 resolve;均失败返回 null。
+   */
+  private resolveBehaviourId(args: string, constMap: Map<string, string>): string | null {
+    const first = this.firstPositionalArg(args)
+    if (!first) return null
+    const lit = /^@?"([\s\S]*?)"$/.exec(first)
+    if (lit) return lit[1] // 字符串字面量
+    // 标识符引用:取末段(MyConstants.XxxId → XxxId)在 const 映射查真实值
+    const ident = (first.split('.').pop() ?? '').trim()
+    if (/^\w+$/.test(ident) && constMap.has(ident)) return constMap.get(ident)!
+    return null // 真未知 → null,UI 保留"⚠ 缺 Id"语义
+  }
+
+  /** 取 attribute 参数文本的首个位置参数(引号 + 括号感知,到第一个顶层逗号为止)。 */
+  private firstPositionalArg(args: string): string | null {
+    let inStr = false
+    let depth = 0
+    for (let i = 0; i < args.length; i++) {
+      const c = args[i]
+      if (inStr) {
+        if (c === '\\') {
+          i++
+          continue
+        }
+        if (c === '"') inStr = false
+        continue
+      }
+      if (c === '"') inStr = true
+      else if (c === '(' || c === '[') depth++
+      else if (c === ')' || c === ']') depth--
+      else if (c === ',' && depth === 0) return args.slice(0, i).trim()
+    }
+    const trimmed = args.trim()
+    return trimmed.length > 0 ? trimmed : null
   }
 }

@@ -42,12 +42,12 @@ export function HubView() {
       </div>
 
       {/* ===== Left brand sidebar ===== */}
-      <aside className="w-[372px] h-full pt-14 pb-4 px-4 flex flex-col bg-panel-gradient border-r border-border-frame">
+      <aside className="w-[372px] h-full pt-12 pb-4 px-4 flex flex-col bg-panel-gradient border-r border-border-subtle">
         <div className="flex flex-col items-center mt-12">
           <div className="relative w-28 h-28 mb-8">
             <div
               className="absolute inset-0 bg-brand-gradient rounded-2xl rotate-45 brand-glow"
-              style={{ boxShadow: '0 0 20px rgba(245, 166, 35, 0.6)' }}
+              style={{ boxShadow: '0 0 20px rgb(var(--brand-base) / 0.6)' }}
             />
             <div className="absolute inset-7 bg-bg-base rounded-lg rotate-45 grid place-items-center">
               <span className="-rotate-45 text-3xl font-bold text-brand-base">MF</span>
@@ -83,8 +83,8 @@ export function HubView() {
       </aside>
 
       {/* ===== Right main area ===== */}
-      <main className="flex-1 h-full pt-14 pb-4 pr-4 flex flex-col">
-        <div className="flex-1 bg-panel-gradient border border-border-frame rounded-xl flex flex-col overflow-hidden">
+      <main className="flex-1 h-full pt-10 flex flex-col">
+        <div className="flex-1 bg-panel-gradient flex flex-col overflow-hidden">
           {/* Header */}
           <div className="p-7 pb-5 flex items-end justify-between border-b border-border-subtle">
             <div>
@@ -126,7 +126,7 @@ export function HubView() {
                 {scanRoot ? <span className="font-mono">{scanRoot}</span> : '未设置扫描根'} · 共 {scannedFiltered.length} 个
               </span>
             </div>
-            <div className="flex-1 board-grid bg-[#0d0d0d] border border-border-frame rounded-xl p-4 overflow-y-auto">
+            <div className="flex-1 board-grid bg-bg-deepest border border-border-frame rounded-xl p-4 overflow-y-auto">
               {scanning && (
                 <div className="h-full grid place-items-center text-fg-mute text-2xs">扫描中…</div>
               )}
@@ -149,24 +149,24 @@ export function HubView() {
           <div className="px-7 py-5 border-t border-border-subtle flex items-center gap-3">
             <button
               onClick={browseScanRoot}
-              className="btn-primary h-10 px-5 rounded-lg text-sm flex items-center gap-2"
+              className="btn-primary h-10 px-5 rounded-lg text-sm flex items-center gap-2 shrink-0"
             >
               📂  浏览工程文件夹...
             </button>
             <button
               onClick={() => refreshScan()}
-              className="btn-ghost h-10 px-5 rounded-lg text-sm"
+              className="btn-ghost h-10 px-5 rounded-lg text-sm shrink-0"
               disabled={!scanRoot || scanning}
             >
               🔄  重新扫描
             </button>
             <button
               onClick={browseAndBindSingle}
-              className="btn-ghost h-10 px-5 rounded-lg text-sm"
+              className="btn-ghost h-10 px-5 rounded-lg text-sm shrink-0"
             >
               ⚡  打开单个工程
             </button>
-            <span className="ml-auto text-2xs text-fg-muteBright">
+            <span className="ml-auto pl-3 min-w-0 truncate text-2xs text-fg-muteBright">
               💡 工具会在选定工程下创建 ModBehaviourProject/&lt;ModName&gt; 子目录
             </span>
           </div>

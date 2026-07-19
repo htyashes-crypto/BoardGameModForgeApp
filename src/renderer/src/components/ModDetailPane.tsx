@@ -38,7 +38,7 @@ export function ModDetailPane({ mod, snapshot, usedBy, activeIdeName, onOpenInId
     <div className="h-full flex flex-col overflow-hidden">
       {/* ===== Header ===== */}
       <header className="p-7 pb-4 flex items-start gap-4 border-b border-border-subtle">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-extrabold tracking-wide">{manifest.name}</h1>
             <span className="text-sm font-mono text-fg-muteBright">v{manifest.version}</span>
@@ -52,7 +52,7 @@ export function ModDetailPane({ mod, snapshot, usedBy, activeIdeName, onOpenInId
               </span>
             )}
           </div>
-          <div className="text-2xs text-fg-muteBright mt-1.5 font-mono">
+          <div className="text-2xs text-fg-muteBright mt-1.5 font-mono truncate">
             {manifest.id} · {mod.behaviours.length} Behaviour 类
             {manifest.description && (
               <span className="ml-2 font-sans text-fg-mute">· {manifest.description}</span>
@@ -60,7 +60,7 @@ export function ModDetailPane({ mod, snapshot, usedBy, activeIdeName, onOpenInId
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
           <button
             onClick={onOpenInIde}
             disabled={!activeIdeName}

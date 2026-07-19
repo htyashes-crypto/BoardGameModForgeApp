@@ -13,6 +13,8 @@ interface BuildState {
   startBuild(projectPath: string, modId: string): Promise<string | null>
   cancelBuild(): Promise<void>
   clearLogs(): void
+  /** 清空当前 task(用户在 BuildingPane 终态点「关闭」时调,回到 ModDetailPane)。 */
+  clearTask(): void
 }
 
 const MAX_LOGS = 2000
@@ -44,9 +46,34 @@ export const useBuildStore = create<BuildState>((set, get) => ({
   async startBuild(projectPath, modId) {
     // 清空 UI 日志,准备新一轮
     set({ logs: [], task: null })
-    const result = await window.api.build.start({ projectPath, modId })
+
+    let result: { taskId: string; error?: string }
+    try {
+      result = await window.api.build.start({ projectPath, modId })
+    } catch (e) {
+      result = { taskId: '', error: `编译启动异常:${(e as Error)?.message ?? String(e)}` }
+    }
+
     if (result.error) {
-      console.error('[buildStore] start failed', result.error)
+      // 把"早退错误"(dotnet 缺失 / 工程含错误 / 已有任务在跑 / IPC 异常)合成成一个 failed task,
+      // 让 BuildingPane 直接展示原因。否则调用方(onBuild)吞掉返回值 → 表现为「点击无反应」(本次 BUG 根因)。
+      const now = Date.now()
+      set({
+        task: {
+          id: 'local-error',
+          rootModId: modId,
+          modIds: [],
+          status: 'failed',
+          completedCount: 0,
+          currentModId: null,
+          startedAt: now,
+          endedAt: now,
+          logs: [],
+          failedAt: modId,
+          failureReason: result.error
+        },
+        logs: [{ ts: now, modId: null, level: 'err', text: result.error }]
+      })
       return result.error
     }
     return null
@@ -58,5 +85,9 @@ export const useBuildStore = create<BuildState>((set, get) => ({
 
   clearLogs() {
     set({ logs: [] })
+  },
+
+  clearTask() {
+    set({ task: null, logs: [] })
   }
 }))

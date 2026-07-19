@@ -28,6 +28,9 @@ export function WorkspaceView() {
   const getSelectedMod = useModStore((s) => s.getSelectedMod)
   const getUsedBy = useModStore((s) => s.getUsedBy)
 
+  // 主题群「Mod 开发环境作为独立引擎」Phase 5:删 useModeStore + standaloneContext + resetMode + scanByModRoot;
+  // 回退到单一工作模式(选目标桌游工程 → Workspace);Mod SDK 路径配置走 SettingsModal
+
   const ideDetect = useIdeStore((s) => s.detect)
   const ideLaunchTarget = useIdeStore((s) => s.launchTarget)
   const activeIde = useIdeStore((s) => s.resolveActiveIde())
@@ -39,9 +42,9 @@ export function WorkspaceView() {
 
   const buildTask = useBuildStore((s) => s.task)
   const startBuild = useBuildStore((s) => s.startBuild)
-  const isBuilding = buildTask?.status === 'running'
+  const clearBuildTask = useBuildStore((s) => s.clearTask)
 
-  // 绑定工程切换 → 自动扫 Mod;首次进入 → 扫 IDE
+  // 绑定工程切换 → 自动扫 Mod
   useEffect(() => {
     if (bound?.path) scan(bound.path)
   }, [bound?.path, scan])
@@ -67,7 +70,13 @@ export function WorkspaceView() {
   const totalBehaviours = snapshot?.mods.reduce((sum, m) => sum + m.behaviours.length, 0) ?? 0
   const hasError = snapshot?.hasError ?? false
 
+  // 主题群「Mod 开发环境作为独立引擎」Phase 5:回退到单一工作模式 — bound 是唯一守卫
   if (!bound) return null
+
+  // 派生(本主题群 Phase 5 单一模式回退后,这些变量直接来自 bound)
+  const displayName = bound.name
+  const displayPath = bound.path
+  const projectInputPath = bound.path
 
   return (
     <div className="h-full flex flex-col bg-bg-base">
@@ -76,7 +85,7 @@ export function WorkspaceView() {
         <div className="w-4 h-4 bg-brand-gradient rotate-45 rounded-sm" />
         <span className="ml-4 text-xs font-bold tracking-wider">ModForge</span>
         <span className="ml-3 text-xs text-fg-mute">
-          · {bound.name}
+          · {displayName}
           {selectedMod?.manifest && <span> › {selectedMod.manifest.name}</span>}
         </span>
       </div>
@@ -84,17 +93,17 @@ export function WorkspaceView() {
       {/* ===== Breadcrumb ===== */}
       <div className="h-[68px] mx-3.5 mt-3.5 bg-panel-gradient border border-border-frame rounded-xl flex items-center px-5 shrink-0">
         <div className="w-9 h-9 bg-bg-input border-[1.5px] border-brand-base rounded-lg grid place-items-center text-base font-extrabold text-brand-base">
-          {bound.name.charAt(0).toUpperCase()}
+          {displayName.charAt(0).toUpperCase()}
         </div>
         <div className="ml-4 flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <span className="text-base font-bold tracking-wide">{bound.name}</span>
+            <span className="text-base font-bold tracking-wide">{displayName}</span>
             <span className="px-1.5 h-4 inline-flex items-center text-3xs font-bold text-brand-bright bg-brand-base/20 rounded">
               当前绑定工程
             </span>
           </div>
           <div className="text-3xs font-mono text-fg-muteBright truncate mt-1">
-            {bound.path} · {snapshot ? `${snapshot.mods.length} Mod · ${totalBehaviours} Behaviour` : '扫描中…'}
+            {projectInputPath} · {snapshot ? `${snapshot.mods.length} Mod · ${totalBehaviours} Behaviour` : '扫描中…'}
             {snapshot && snapshot.topologyOrder.length > 0 && ` · 拓扑序就绪`}
             {hasError && <span className="text-status-danger"> · ⚠ 含错误</span>}
           </div>
@@ -102,14 +111,14 @@ export function WorkspaceView() {
         <button
           onClick={() => setIsDepsGraphOpen(true)}
           disabled={!snapshot || snapshot.mods.length === 0}
-          className="h-8 px-3 rounded-lg text-2xs font-bold text-brand-base bg-brand-base/10 border border-brand-base/40 hover:bg-brand-base/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="h-8 px-3 rounded-lg text-2xs font-bold text-brand-base bg-brand-base/10 border border-brand-base/40 hover:bg-brand-base/20 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
         >
           🔗 查看依赖图
         </button>
-        <button onClick={unbind} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs" title="返回 Hub 选其他桌游工程">
+        <button onClick={unbind} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs shrink-0" title="返回 Hub 选其他桌游工程">
           ← 返回
         </button>
-        <button onClick={() => setIsSettingsOpen(true)} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs" title="IDE 偏好等设置">
+        <button onClick={() => setIsSettingsOpen(true)} className="btn-ghost h-8 px-3 ml-2 rounded-lg text-2xs shrink-0" title="IDE 偏好等设置">
           ⚙ 设置
         </button>
       </div>
@@ -148,13 +157,20 @@ export function WorkspaceView() {
             {!scanning &&
               orderedMods.map((mod) => {
                 const id = mod.manifest?.id ?? mod.modDir
-                const idx = mod.manifest ? snapshot!.topologyOrder.indexOf(id) : -1
-                const total = snapshot!.topologyOrder.length
+                // 主题群「Mod 开发环境作为独立引擎」收尾:优先用 mod.json 内开发者声明的 layer;
+                // 缺省时降级到拓扑序推断(老 Mod 未经新 ModForge 重建时的兜底)。
+                const declaredLayer = mod.manifest?.layer
                 let layer: 'base' | 'mid' | 'app' | undefined
-                if (idx >= 0 && total > 0) {
-                  if (idx === 0) layer = 'base'
-                  else if (idx === total - 1 && total > 1) layer = 'app'
-                  else layer = 'mid'
+                if (declaredLayer === 'base' || declaredLayer === 'mid' || declaredLayer === 'app') {
+                  layer = declaredLayer
+                } else {
+                  const idx = mod.manifest ? snapshot!.topologyOrder.indexOf(id) : -1
+                  const total = snapshot!.topologyOrder.length
+                  if (idx >= 0 && total > 0) {
+                    if (idx === 0) layer = 'base'
+                    else if (idx === total - 1 && total > 1) layer = 'app'
+                    else layer = 'mid'
+                  }
                 }
                 return (
                   <ModListItem
@@ -175,8 +191,19 @@ export function WorkspaceView() {
             <div className="h-full grid place-items-center text-fg-mute text-2xs">
               {scanning ? '扫描中…' : '加载中…'}
             </div>
-          ) : isBuilding && selectedMod && buildTask ? (
-            <BuildingPane task={buildTask} selectedMod={selectedMod} allMods={snapshot.mods} />
+          ) : buildTask && selectedMod && buildTask.rootModId === selectedMod.manifest?.id ? (
+            // 只要当前选中 Mod 有编译任务就显示 BuildingPane —— 含 running/success/failed/cancelled
+            // 所有终态,这样编译失败(如 dotnet 缺失)的原因和日志能被看到,不再"闪一下就没"。
+            <BuildingPane
+              task={buildTask}
+              selectedMod={selectedMod}
+              allMods={snapshot.mods}
+              onClose={() => {
+                clearBuildTask()
+                // 关闭后重扫,刷新 dll 编译状态(已编译 badge / OUTPUT DLL 元信息)
+                scan(projectInputPath)
+              }}
+            />
           ) : selectedMod ? (
             <ModDetailPane
               mod={selectedMod}
@@ -190,7 +217,7 @@ export function WorkspaceView() {
               }}
               onBuild={() => {
                 if (bound && selectedMod?.manifest) {
-                  startBuild(bound.path, selectedMod.manifest.id)
+                  startBuild(projectInputPath, selectedMod.manifest.id)
                 }
               }}
               onOpenFolder={() => {
@@ -200,14 +227,14 @@ export function WorkspaceView() {
               onDeleteMod={async () => {
                 if (!bound || !selectedMod?.manifest) return
                 const result = await window.api.mod.delete({
-                  projectPath: bound.path,
+                  projectPath: projectInputPath,
                   modId: selectedMod.manifest.id,
                   modDirName: selectedMod.modDir
                 })
                 if (result.success) {
                   // 删除成功:取消选中 + 重扫
                   selectMod(null)
-                  await scan(bound.path)
+                  await scan(projectInputPath)
                 } else if (!result.cancelled && result.errors.length > 0) {
                   console.error('[Mod] 删除失败:', result.errors)
                 }
@@ -232,7 +259,7 @@ export function WorkspaceView() {
             if (bound && snapshot.topologyOrder.length > 0) {
               const root = snapshot.topologyOrder[snapshot.topologyOrder.length - 1]
               setIsDepsGraphOpen(false)
-              startBuild(bound.path, root)
+              startBuild(projectInputPath, root)
             }
           }}
         />
@@ -240,12 +267,12 @@ export function WorkspaceView() {
 
       {isNewBehaviourOpen && bound && selectedMod && (
         <NewBehaviourModal
-          projectPath={bound.path}
+          projectPath={projectInputPath}
           mod={selectedMod}
           onClose={() => setIsNewBehaviourOpen(false)}
           onCreated={async (filePath, openInIde) => {
             setIsNewBehaviourOpen(false)
-            await scan(bound.path)
+            await scan(projectInputPath)
             if (openInIde) ideLaunchTarget(filePath)
           }}
         />
@@ -253,14 +280,14 @@ export function WorkspaceView() {
 
       {isNewModOpen && bound && snapshot && (
         <NewModModal
-          projectPath={bound.path}
-          projectName={bound.name}
+          projectPath={projectInputPath}
+          projectName={displayName}
           existingMods={snapshot.mods}
           onClose={() => setIsNewModOpen(false)}
           onCreated={async (modDirPath, modId, openInIde) => {
             setIsNewModOpen(false)
             // 重扫 + 选中新 Mod
-            await scan(bound.path)
+            await scan(projectInputPath)
             selectMod(modId)
             // 打开 Mod 根(含 .sln),窗口标题 = Mod 名
             if (openInIde) ideLaunchTarget(modDirPath)

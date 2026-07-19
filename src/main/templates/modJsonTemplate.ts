@@ -1,5 +1,17 @@
 import type { ModDependency } from '../types-mod'
 
+/**
+ * Mod 编译期绑定的 SDK 版本印章。运行时 Loader 与 Player 内嵌 SDK 比对,
+ * 不一致时通过 TerminalLog 警告(主题群「Mod 开发环境作为独立引擎」收尾补完)。
+ */
+export interface ModSdkBindings {
+  sdkVersion?: string
+  contentHash?: string
+}
+
+/** Mod 架构层级(开发者声明,主题群「Mod 开发环境作为独立引擎」收尾补完)。 */
+export type ModLayer = 'base' | 'mid' | 'app'
+
 export interface ModJsonInput {
   id: string
   name: string
@@ -8,6 +20,10 @@ export interface ModJsonInput {
   author?: string
   behaviourIdPrefix?: string
   dependencies: ModDependency[]
+  /** Mod 编译期绑定的 SDK 版本印章(由 ModCreationService 从配置的 ModSdk 路径读取并注入)。 */
+  sdkBindings?: ModSdkBindings
+  /** 开发者声明的架构层级(可选;空值时 ModForge 列表降级到拓扑序推断)。 */
+  layer?: ModLayer
 }
 
 /**
@@ -23,9 +39,16 @@ export function renderModJson(input: ModJsonInput): string {
   if (input.description) obj.description = input.description
   if (input.author) obj.author = input.author
   if (input.behaviourIdPrefix) obj.behaviourIdPrefix = input.behaviourIdPrefix
+  if (input.layer) obj.layer = input.layer
   obj.dependencies = input.dependencies.map((d) => ({
     id: d.id,
     version: d.versionRange
   }))
+  if (input.sdkBindings && (input.sdkBindings.sdkVersion || input.sdkBindings.contentHash)) {
+    const sb: Record<string, string> = {}
+    if (input.sdkBindings.sdkVersion) sb.sdkVersion = input.sdkBindings.sdkVersion
+    if (input.sdkBindings.contentHash) sb.contentHash = input.sdkBindings.contentHash
+    obj.sdkBindings = sb
+  }
   return JSON.stringify(obj, null, 4) + '\n'
 }
