@@ -1,3 +1,4 @@
+mod creation;
 mod mod_scan;
 mod project;
 mod settings;
@@ -47,6 +48,9 @@ pub fn run() {
             project::project_bind,
             project::project_unbind,
             mod_scan::mod_scan_project_raw,
+            creation::mod_create_write,
+            creation::behaviour_create_write,
+            creation::mod_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
