@@ -1,4 +1,8 @@
+mod project;
+mod settings;
+
 use serde::Serialize;
+use tauri::Manager;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,7 +28,24 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_app_info])
+        .setup(|app| {
+            let handle = app.handle();
+            let mut s = settings::load(handle);
+            // --project argv 自动绑定须在前端首个 invoke 前完成(桌游编辑器拉起链路)
+            project::try_auto_bind_from_argv(handle, &mut s);
+            app.manage(settings::SettingsState(std::sync::Mutex::new(s)));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            get_app_info,
+            project::project_scan,
+            project::project_scan_single,
+            project::project_auto_detect_root,
+            project::project_get_last_scan_root,
+            project::project_get_snapshot,
+            project::project_bind,
+            project::project_unbind,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
