@@ -66,14 +66,13 @@ export function renderCsproj(input: CsprojInput): string {
   目录布局假设(Standalone 模式):
     <exe 同级>/Mods/<ModName>/src/<csproj>     ← 玩家自装 Mod
     <exe 同级>/ModSdk/Lib/                      ← SDK dll 集
-                                                3 级 .. 退回 <exe 同级>,再加 ModSdk\\
-  -->
+                                                3 级 .. 退回 <exe 同级>,再加 ModSdk  -->
 
   <PropertyGroup>
     <!-- 本工程模式锚点(桌游开发者本机 fallback 用) -->
     <UnityProjectRoot>$(MSBuildThisFileDirectory)..\\..\\..\\..\\..\\</UnityProjectRoot>
 
-    <!-- Mod SDK 路径(绝对路径硬写) -->
+    <!-- Mod SDK 路径(主题群「Mod 开发环境作为独立引擎」Phase 3 决策 1=B 绝对路径硬写) -->
     <ModSdkRoot>${escapeMsbuildPath(input.modSdkPath ?? "")}</ModSdkRoot>
     <ModSdkLibPath>$(ModSdkRoot)Lib\\</ModSdkLibPath>
 
@@ -83,7 +82,7 @@ export function renderCsproj(input: CsprojInput): string {
   </PropertyGroup>
 
   <!--
-    单模式切换:
+    单模式切换(主题群「Mod 开发环境作为独立引擎」Phase 3 决策 1=B + 决策 2=A):
     - 主源 = ModSdkLib:Mod SDK 路径已配置 + dll 存在 → 所有 dll 从 ModSdkLib 拿(Mod 开发者正常路径)
     - 本工程 fallback:ModSdkLib 不存在(桌游开发者本机未导出 ModSDK)→ SDK 走 Library/ScriptAssemblies + Unity dll 走安装目录 + Warning Target 提示
   -->
@@ -132,7 +131,7 @@ export function renderCsproj(input: CsprojInput): string {
     </Reference>
 
     <!--
-      Bg* 编译期常量(由桌游编辑器 LeftMenuPanel "Regenerate BgConstants" 或 bg-codegen.exe 触发产出)。
+      Bg* 编译期常量(由桌游编辑器 LeftMenuPanel "Regenerate BgConstants" 或 Phase 4 bg-codegen.exe 触发产出)。
 
       Standalone 模式:Bundler 已把 BgGeneratedConstants.dll 拷到 ModSdk/Lib/,走 $(SdkHintPath) 命中。
       本工程模式:走 Shared/Generated/bin/Release/.../ 退路;首次未跑 codegen 时 dll 不存在 → 整 Reference 不命中跳过。
@@ -151,7 +150,7 @@ export function renderCsproj(input: CsprojInput): string {
   </ItemGroup>
 
   <!--
-    诊断 + Warning Target:
+    诊断 + Warning Target(主题群「Mod 开发环境作为独立引擎」Phase 3 决策 2=A):
     - ModSdkRef=ModSdkLib 时:正常路径,Message 输出当前 ModSdkRoot
     - ModSdkRef=ProjectFallback 时:Warning 提示从 GitHub 下载 ModSDK 走主源
   -->
