@@ -1,4 +1,6 @@
 mod creation;
+mod devenv;
+mod ide;
 mod mod_build;
 mod mod_scan;
 mod project;
@@ -56,6 +58,16 @@ pub fn run() {
             mod_build::build_start,
             mod_build::build_cancel,
             mod_build::build_get_current_task,
+            ide::ide_detect_all,
+            ide::ide_get_preferred,
+            ide::ide_set_preferred,
+            ide::ide_launch,
+            devenv::devenv_get_snapshot,
+            devenv::devenv_validate_mod_sdk_path,
+            devenv::devenv_set_mod_sdk_path,
+            devenv::devenv_get_sdk_bindings,
+            devenv::devenv_get_github_urls,
+            devenv::devenv_download_from_github,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
