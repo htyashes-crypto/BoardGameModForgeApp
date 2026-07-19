@@ -1,4 +1,5 @@
 mod creation;
+mod mod_build;
 mod mod_scan;
 mod project;
 mod settings;
@@ -36,6 +37,7 @@ pub fn run() {
             // --project argv 自动绑定须在前端首个 invoke 前完成(桌游编辑器拉起链路)
             project::try_auto_bind_from_argv(handle, &mut s);
             app.manage(settings::SettingsState(std::sync::Mutex::new(s)));
+            app.manage(mod_build::BuildState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -51,6 +53,9 @@ pub fn run() {
             creation::mod_create_write,
             creation::behaviour_create_write,
             creation::mod_delete,
+            mod_build::build_start,
+            mod_build::build_cancel,
+            mod_build::build_get_current_task,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
