@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--app-font);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ============ 语义配色 token(仅深色,单套) ============
+   组件统一用 var(--xxx)(Tailwind 任意值 bg-[var(--surface)] 等)引用,禁直接写 hex。
+   值取自 HtyBox index.css 的 html.dark 段(2026-07-19 拍板:视觉对齐 hty 生态、仅深色);
+   ModForge 专属扩展:--warn(未编译/警告态)与三个 *-soft 徽章底(HtyBox 无对应 token)。 */
+:root {
+  --bg: #1a1815;            /* 页面根背景 */
+  --surface: #24211c;       /* 标题栏/工具栏/卡片面 */
+  --surface-hover: #332e26; /* 表面 hover */
+  --surface-soft: #2b2620;  /* 更轻的浅块/输入底上层 */
+  --elevated: #2a2620;      /* 弹窗/下拉浮层 */
+  --input: #1f1e1d;         /* 输入框/深内嵌底(同 --term-bg 色系) */
+  --border: #39342c;        /* 主边框 */
+  --border-soft: #322d26;   /* 浅分隔线 */
+  --text: #ece8e1;          /* 主文字 */
+  --text-2: #b4aea3;        /* 次文字 */
+  --text-3: #8a847a;        /* 弱文字/占位 */
+  --text-faint: #7a746b;    /* 更弱/页脚 */
+  --text-deep: #dbd5cb;     /* 列表/菜单项正文 */
+  --accent: #d97757;        /* 陶土橙强调 */
+  --accent-text: #e08a6a;   /* 陶土文字/链接 */
+  --accent-soft: #3a2a22;   /* 陶土淡选中底 */
+  --accent-border: #6b4d38; /* 陶土边框(主力) */
+  --accent-border-soft: #4a382c;
+  --success: #3ab56a;
+  --success-hover: #46c177;
+  --success-soft: rgba(58, 181, 106, 0.14);
+  --warn: #d9a34f;          /* 警告/未编译(ModForge 扩展) */
+  --warn-soft: rgba(217, 163, 79, 0.14);
+  --danger: #e35f57;
+  --danger-hover: #ec6f68;
+  --danger-soft: rgba(227, 95, 87, 0.12);
+  --term-bg: #1f1e1d;       /* 日志/代码块深底 */
+  --term-fg: #e5e2dc;
+  --scrollbar: #45403a;
+  --scrollbar-hover: #524c44;
+  --focus-border: #d97757;
+  --app-font: "HarmonyOS Sans SC", "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  --mono-font: Consolas, "JetBrains Mono", "SF Mono", monospace;
+}
+
+/* 细窄滚动条 */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
